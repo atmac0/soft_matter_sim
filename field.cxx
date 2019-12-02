@@ -60,45 +60,24 @@ int32_t Field::field_to_png(uint32_t frame_num)
 
 void Field::place_edge_in_field(coord_t point, uint32_t particle_num, Collisions* collisions)
 {
-
-  int32_t field_x; 
-  int32_t field_y; 
-
-  if(point.x < 0)
-  {
-    field_x = FIELD_WIDTH + point.x;
-  }
-  else
-  {
-    field_x = point.x%FIELD_WIDTH;
-  }
-
-  if(point.y < 0)
-  {
-    field_y = FIELD_HEIGHT + point.y;
-  }
-  else
-  {
-    field_y = point.y%FIELD_HEIGHT;
-  }
   
   //If there is already an edge at this point in the field, record the location and particles interacting as a collision.
-  if(field[field_x][field_y] != 0 && field[field_x][field_y] != particle_num)
+  if(field[point.x][point.y] != 0 && field[point.x][point.y] != particle_num)
   {
     collision_t collision;
     coord_t collision_coord;
     
-    collision_coord.x = field_x;
-    collision_coord.y = field_y;
+    collision_coord.x = point.x;
+    collision_coord.y = point.y;
     
     collision.location  = collision_coord;
     collision.particle1 = particle_num;
-    collision.particle2 = field[field_x][field_y];
+    collision.particle2 = field[point.x][point.y];
     
     collisions->add_collision(collision);
   }
     
-  field[field_x][field_y] = particle_num;
+  field[point.x][point.y] = particle_num;
 }
 
 uint16_t Field::get_particle_at(coord_t point)

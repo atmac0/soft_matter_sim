@@ -49,4 +49,5 @@ public:
   void resolve_collisions(Collisions* collisions);
   uint32_t translate_y_by_granular(double granularity);
   uint32_t translate_x_by_granular(double granularity);
+  void rotate_particle(double time_span);
 };

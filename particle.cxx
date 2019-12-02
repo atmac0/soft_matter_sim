@@ -51,6 +51,9 @@ where r is calulated by incremented values of an x and y value that are stored r
 */
 void Particle::add_edge_location(coord_t location)
 {
+
+  
+  
   edge_locations.push_back(location);
 }
 
@@ -110,6 +113,26 @@ coord_t Particle::translate_to_field(coord_t edge_point)
   //Translate from coordinates relative to the center of mass, to relative to the field
   edge_point.x = center_mass_coord.x + x_prime;
   edge_point.y = center_mass_coord.y + y_prime;	 
+
+  //Check if edge is inside of the bounds of the field. If not, have it wrap around.
+  if(edge_point.x < 0)
+  {
+    edge_point.x = FIELD_WIDTH + edge_point.x;
+  }
+  else
+  {
+    edge_point.x = edge_point.x%FIELD_WIDTH;
+  }
+
+  if(edge_point.y < 0)
+  {
+    edge_point.y = FIELD_HEIGHT + edge_point.y;
+  }
+  else
+  {
+    edge_point.y = edge_point.y%FIELD_HEIGHT;
+  }
+  
   
   return edge_point;
 }
@@ -170,9 +193,11 @@ void Particle::propagate()
     /*Check if the particle will travel atleast 1 cell in the y direction in the time remaining. If it does, proceed by incrementing
       the y direction by one, and the x direction by the number it should travel, determined by the x_y_ratio.*/
     
-    std::cout << "x cm pos: " << center_mass_coord.x << "\n";
     if((time + y_cell_time) <= TIME_INCREMENT)
     {
+
+      rotate_particle(y_cell_time);
+      
       collisions = translate_y_by_1();
       resolve_collisions(collisions);
 
@@ -195,6 +220,9 @@ void Particle::propagate()
     else if((time + y_cell_time) > TIME_INCREMENT)
     {
       double time_remaining = ((double)TIME_INCREMENT) - time;
+
+      rotate_particle(time_remaining);
+      
       y_distance_to_travel = y_velocity * time_remaining;
       x_distance_to_travel = x_velocity * time_remaining;
 
@@ -215,6 +243,13 @@ void Particle::propagate()
     }
     time += y_cell_time;
   }
+}
+
+//add the rotational displacement (angular velocity * time span) to the orientation. If the orientation goes over 2*PI, take the remainder.
+void Particle::rotate_particle(double time_span)
+{
+  orientation += angular_velocity * time_span;
+  orientation = fmod(orientation, M_PI*2);
 }
 
 /*Translate the particle by 1 in the direction appropriate to the current
