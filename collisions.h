@@ -22,6 +22,5 @@ class Collisions
   uint32_t counts();
   collision_t get_collision_at(uint32_t index);
   void add_collision(collision_t collision);
-  uint32_t get_collision_count();
   ~Collisions();
 };

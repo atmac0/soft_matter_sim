@@ -20,15 +20,15 @@ int32_t main()
   
   coord_t cm_coord1 = {50,50};
   coord_t cm_coord2 = {45,45};
-  Particle my_particle1(&my_field, 1, SQUARE, M_PI/4, 0, 0, 0, cm_coord1);
-  Particle my_particle2(&my_field, 2, SQUARE, 0, 0, 0, 0, cm_coord2); 
   
-  Collisions collisions = my_particle1.draw_edges();
-  std::cout << collisions.get_collision_count() << "\n";
-  collisions = my_particle2.draw_edges();
-  std::cout << collisions.get_collision_count() << "\n";
-  uint32_t frame_num = 1;
-  my_field.field_to_png(frame_num);
+  Particle my_particle1(&my_field, 1, SQUARE, M_PI/100, M_PI/4, 10, 5, cm_coord1);
+  //Particle my_particle2(&my_field, 2, SQUARE, 0, 0, 0, 0, cm_coord2); 
+
+  for(uint32_t frame_num=1; frame_num<50; frame_num++)
+  {
+    my_particle1.propagate();
+    my_field.field_to_png(frame_num);
+  }
   
   return 0;
 }

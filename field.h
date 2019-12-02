@@ -22,4 +22,6 @@ public:
   Field();
   int32_t field_to_png(uint32_t frame_num);
   void place_edge_in_field(coord_t point, uint32_t particle_num, Collisions* collisions);
+  uint16_t get_particle_at(coord_t point);
+  void  clear_particle_at(coord_t point);
 };

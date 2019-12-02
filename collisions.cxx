@@ -24,11 +24,6 @@ collision_t Collisions::get_collision_at(uint32_t index)
   return collisions[index];
 }
 
-uint32_t Collisions::get_collision_count()
-{
-  return collision_count;
-}
-
 void Collisions::add_collision(collision_t collision)
 {
   collisions[collision_count] = collision;
