@@ -164,13 +164,13 @@ void Particle::propagate()
 
   double time = 0; //time spent propogating
 
-  double x_cell_velocity = x_velocity/CELL_SIZE; //convert x velocity to cells per micro-second
-  double y_cell_velocity = y_velocity/CELL_SIZE; //convert y velocity to cells per micro-second
+  double x_cell_velocity = abs(x_velocity)/CELL_SIZE; //convert x velocity to cells per micro-second
+  double y_cell_velocity = abs(y_velocity)/CELL_SIZE; //convert y velocity to cells per micro-second
 
   double x_cell_time     = 1/x_cell_velocity; //time spent per cell movement
   double y_cell_time     = 1/y_cell_velocity;
 
-  double x_distance_to_travel = y_cell_time * x_velocity;
+  double x_distance_to_travel = y_cell_time * abs(x_velocity);
   double y_distance_to_travel;
 
   uint32_t x_cells_to_travel;
@@ -223,12 +223,19 @@ void Particle::propagate()
 
       rotate_particle(time_remaining);
       
-      y_distance_to_travel = y_velocity * time_remaining;
-      x_distance_to_travel = x_velocity * time_remaining;
+      y_distance_to_travel = abs(y_velocity) * time_remaining;
+      x_distance_to_travel = abs(x_velocity) * time_remaining;
 
       if(translate_y_by_granular(y_distance_to_travel) == 1)
       {
-    	translate_y_by_1();
+    	collisions = translate_y_by_1();
+	resolve_collisions(collisions);
+      }
+      else
+      {
+	//This is only called if the y velocity is very small. Without this, the particle will not be drawn if it is stationary.
+	delete_edges();
+	resolve_collisions(draw_edges());
       }
 
       x_cells_to_travel = 0;
@@ -361,5 +368,9 @@ uint32_t Particle::translate_x_by_granular(double granularity)
 
 void Particle::resolve_collisions(Collisions* collisions)
 {
-  
+  for(uint32_t i = 0; i < collisions->counts(); i++)
+  {
+    
+    std::cout << "Collision at (" << collisions->get_collision_at(i).location.x << "," << collisions->get_collision_at(i).location.y << ") between particle " << collisions->get_collision_at(i).particle1 << " and particle " << collisions->get_collision_at(i).particle2 << "!\n";
+  }
 }

@@ -17,7 +17,6 @@ class Field
 {
 private:
   uint16_t field[FIELD_WIDTH][FIELD_HEIGHT];
-  void initialize_field();  
 public:
   Field();
   int32_t field_to_png(uint32_t frame_num);

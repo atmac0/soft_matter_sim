@@ -1,11 +1,7 @@
 #include "field.h"
+#include "data_types.h"
 
 Field::Field()
-{
-  initialize_field();
-}
-
-void Field::initialize_field()
 {  
   for(int32_t i=0; i<FIELD_WIDTH; i++)
   {
@@ -19,19 +15,22 @@ void Field::initialize_field()
 int32_t Field::field_to_png(uint32_t frame_num)
 {
 
-  std::string input_name  = "100x100.png";
+  char input_name[50];
   char output_name[50];
+
+  //std::string input_name  = "10000x10000.png";
+  sprintf(input_name, "%dx%d.png", FIELD_WIDTH, FIELD_HEIGHT);
   sprintf(output_name, "frame_%d.png", frame_num);
   
   sf::Image image;
-  //output_name += char(frame_num);
 
   if (!image.loadFromFile(input_name))
   {
     return -1;
   }
 
-  sf::Color p;
+  sf::Color w(255,255,255);
+  sf::Color b(0,0,0);
   
   for(int32_t i=0; i<FIELD_WIDTH; i++)
   {
@@ -39,13 +38,11 @@ int32_t Field::field_to_png(uint32_t frame_num)
     {
       if(field[i][j] == 0)
       {
-	p = sf::Color(255,255,255);
-	image.setPixel(i,j,p);
+	image.setPixel(i,j,w);
       }
       else
       {
-	p = sf::Color(0,0,0);
-	image.setPixel(i,j,p);
+	image.setPixel(i,j,b);
       }
     }
   }
