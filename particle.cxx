@@ -9,7 +9,7 @@ uint16_t Particle::get_particle_mass()
   }
 }
 
-Particle::Particle(Field* field_, uint16_t par_num, Particle_type par_type, double angular_vel, double orient, double x_vel, double y_vel, coord_t cm_coord)
+Particle::Particle(Field* field_, field_t par_num, Particle_type par_type, double angular_vel, double orient, double x_vel, double y_vel, coord_t cm_coord)
 {
   particle_num       = par_num;
   particle_type      = par_type;
@@ -23,9 +23,13 @@ Particle::Particle(Field* field_, uint16_t par_num, Particle_type par_type, doub
   center_mass_coord  = cm_coord;
   field              = field_;
 
+  relative_time      = 0;
+  
   if(par_type == SQUARE)
   {
-    edge_locations.resize(NUM_SIDES_SQUARE*SQUARE_SIDE_LENGTH/CELL_SIZE); //resize edge location vector to hold all possible edges 
+    edge_locations.resize(NUM_SIDES_SQUARE*SQUARE_SIDE_LENGTH/CELL_SIZE); //resize edge location vector to hold all possible edges
+    mass = MASS_SQUARE;
+    moment_of_inertia = ((double)mass*pow(SQUARE_SIDE_LENGTH,2))/6; //moment of inertia is defined for a flat square as: L = (m*a^2)/6
   }
 }  
 
@@ -50,10 +54,7 @@ where r is calulated by incremented values of an x and y value that are stored r
 
 */
 void Particle::add_edge_location(coord_t location)
-{
-
-  
-  
+{  
   edge_locations.push_back(location);
 }
 
@@ -66,7 +67,7 @@ Collisions* Particle::draw_square()
   coord_t coord_field;
   coord_t coord_square;
   
-  for(int32_t i=-side_cell_count/2; i<=side_cell_count/2; i++)
+  for(int32_t i = -side_cell_count/2; i <= side_cell_count/2; i++)
   {
     //right side
     coord_square.x = side_cell_count/2;
@@ -107,8 +108,8 @@ coord_t Particle::translate_to_field(coord_t edge_point)
     x' = xcos(theta) - ysin(theta)
     y' = xsin(theta) + ycos(theta)
     where x and y are the initial coordinates, and x' and y' are the rotated coordinates */
-  int32_t x_prime = edge_point.x*cos(-orientation) - edge_point.y*sin(-orientation); 
-  int32_t y_prime = edge_point.x*sin(-orientation) + edge_point.y*cos(-orientation);
+  int32_t x_prime = edge_point.x*cos(orientation) - edge_point.y*sin(orientation); 
+  int32_t y_prime = edge_point.x*sin(orientation) + edge_point.y*cos(orientation);
 
   //Translate from coordinates relative to the center of mass, to relative to the field
   edge_point.x = center_mass_coord.x + x_prime;
@@ -214,6 +215,8 @@ void Particle::propagate()
       	collisions = translate_x_by_1();
       	resolve_collisions(collisions);
       }
+      
+      time += y_cell_time;
     }
     /*If incrementing once in the y direction would go over the time increment limit, add the granular amount. If the granular amount goes over one,
       propogate in the y direction. Then propogate x by the correct proportion.*/
@@ -242,13 +245,13 @@ void Particle::propagate()
       x_cells_to_travel += translate_x_by_granular(modf(x_distance_to_travel, &x_cell_int_as_double));
       x_cells_to_travel += (uint32_t)x_cell_int_as_double;
 
-      for(uint32_t i=0; i<x_cells_to_travel; i++)
+      for(uint32_t i = 0; i < x_cells_to_travel; i++)
       {
     	collisions = translate_x_by_1();
     	resolve_collisions(collisions);
       }
+      time = TIME_INCREMENT;
     }
-    time += y_cell_time;
   }
 }
 
@@ -368,9 +371,201 @@ uint32_t Particle::translate_x_by_granular(double granularity)
 
 void Particle::resolve_collisions(Collisions* collisions)
 {
+    //dp_t: change in translational momentum; dp_l: change in angular momentum. 1 is the current particle in iteration.
+    // 2 is the particle in which the collision happened.
+  momentum_t delta_translational[NUM_PARTICLES] = {0};
+  double delta_angular[NUM_PARTICLES] = {0};
+  momentum_t p1, p2;
+
+  coord_t collision_location;
+  field_t particle_1_num, particle_2_num;
+  coord_t particle_1_cm_coord, particle_2_cm_coord;
+
+  //Iterate through all the collisions that occured during the most recent drawing
   for(uint32_t i = 0; i < collisions->counts(); i++)
-  {
-    
+  {   
     std::cout << "Collision at (" << collisions->get_collision_at(i).location.x << "," << collisions->get_collision_at(i).location.y << ") between particle " << collisions->get_collision_at(i).particle1 << " and particle " << collisions->get_collision_at(i).particle2 << "!\n";
+
+    //Get the location of the collision and the identifying number of the particles that interacted
+    collision_location = collisions->get_collision_at(i).location;
+    particle_1_num             = collisions->get_collision_at(i).particle1;
+    particle_2_num             = collisions->get_collision_at(i).particle2;
+
+    //Get the center of mass positions of each particle
+    particle_1_cm_coord        = particles[particle_1_num]->center_mass_coord;
+    particle_2_cm_coord        = particles[particle_2_num]->center_mass_coord;
+
+    //Find the linear momentum of the edge of each particle at the collision location
+    p1 = find_linear_momentum_at(collision_location, particle_1_num);
+    p2 = find_linear_momentum_at(collision_location, particle_2_num);
+
+    //Find the transfter of momentum due to the individual edge points that collided. The final change will be the sum of the change due to
+    //every colliding edge point.
+    std::cout << "Change in momentum of particle " << particle_2_num << " due to collision at ("
+	      << collision_location.x << "," << collision_location.y << "):\n";
+    find_change_in_momentum(p1, particle_2_cm_coord, collision_location, &delta_translational[particle_2_num], &delta_angular[particle_2_num]);
+    std::cout << "Change in momentum of particle " << particle_1_num << " due to collision at ("
+	      << collision_location.x << "," << collision_location.y << "):\n";
+    find_change_in_momentum(p2, particle_1_cm_coord, collision_location, &delta_translational[particle_1_num], &delta_angular[particle_1_num]);
   }
+
+  //This is ~dirty~. I had to use a list of length NUM_PARTICLES because I needed some way to keep track of which particles were interacted with.
+  //Most of the elements of the list are going to be empty, however I still iterate through all of them. Implementing some way to keep track of
+  //just the particles that were interacted with would be good.
+  for(uint32_t i = 0; i < NUM_PARTICLES; i++)
+  {
+    Particle* particle = particles[i];
+    //To find the velocity, p=mv, where v=p/m. This is why you must divide by momentum by the mass.
+    if(collisions->counts() != 0)
+    {
+      double average_dx_trans_vel = (delta_translational[i].x/particle->get_mass())/collisions->counts();
+      double average_dy_trans_vel = (delta_translational[i].y/particle->get_mass())/collisions->counts();
+      particle->increment_x_velocity(average_dx_trans_vel);
+      particle->increment_y_velocity(average_dy_trans_vel);
+    }
+  }
+}
+
+/*The change in momentum has two parts, the change in translational momentum, and the change in angular momentum. To find the translational change, 
+find the projection of the linear momentum vector with the vector pointing from the colliding edge to the center of mass. The x and y components of this
+vector will be the */
+void Particle::find_change_in_momentum(momentum_t linear_momentum, coord_t cm_coord, coord_t coll_location, momentum_t* dp_t, double* dp_l)
+{
+  uint32_t x_diff    = cm_coord.x - coll_location.x;
+  uint32_t y_diff    = cm_coord.y - coll_location.y;
+  double   r_mag = sqrt(pow(x_diff,2) + pow(y_diff,2));
+  double lin_mom_mag = sqrt(pow(linear_momentum.x,2) + pow(linear_momentum.y,2));  
+  
+  dp_t->x += (linear_momentum.x * x_diff)/r_mag;
+  dp_t->y += (linear_momentum.y * y_diff)/r_mag;
+ 
+  double dp_lx = (linear_momentum.x *  y_diff)/r_mag;
+  double dp_ly = (linear_momentum.y * -x_diff)/r_mag;
+  
+  *dp_l += sqrt( pow(dp_lx,2) + pow(dp_ly,2) );
+
+  std::cout << "Change in linear momentum: dx = " << (linear_momentum.x * x_diff)/r_mag << ", dy = " << (linear_momentum.y * y_diff)/r_mag << "\n";
+  std::cout << "Change in angular momntum: dl = " << sqrt( pow(dp_lx,2) + pow(dp_ly,2) ) << "\n";
+}
+
+/*Find the linear momentum at a point on the edge of a particle.
+Notation:
+L: angular momentum
+v: translational velocity
+r: disance from point of rotation (center of mass)
+w: angular velocity
+m: mass of particle
+I: moment of inertia
+
+L = rp; L=Iw; => p = Iw/r
+
+These relations are used to find the magnitude of the momentum at a point on the edge. The components
+are then found using
+*/
+momentum_t Particle::find_linear_momentum_at(coord_t point, field_t particle_num)
+{
+
+  Particle* particle = particles[particle_num];
+  momentum_t linear_momentum;
+
+  //Find the components due to translational momentum
+  linear_momentum.x = particle->get_x_velocity()*particle->get_mass();
+  linear_momentum.y = particle->get_y_velocity()*particle->get_mass();
+
+  //Find the components due to angular momentum
+  /*  To find the linear momentum due to the angular velocity, imagine you draw a circle about the center of mass where
+  the edge intersects with the point at which a collision happened. Draw a line from the center of mass to this point.
+  The direction of the momentum is the negative inverse of the slope of this line. However, the direction is opposite if 
+  the particle is rotating counter clockwise.
+
+  ................+.......
+  .....|-----------*+..... The stars represent the r vector. The + represent the perpendicular momentum vector.
+  .....|........*..|..+....
+  .....|.....*--------->x.
+  .....|...........|......
+  .....|-----------|......
+  ........................
+*/
+
+  uint32_t x_diff = point.x - particle->get_center_mass_coord().x;
+  uint32_t y_diff = point.y - particle->get_center_mass_coord().y;
+
+  double w        = particle->get_angular_velocity();
+  double I        = particle->get_moment_of_inertia();
+  double r        = sqrt(pow(x_diff,2) + pow(y_diff,2));
+  
+  double slope;    
+  double p_slope;   
+  
+  double p_magnitude = I*w/r;
+
+  //Check if the difference in the x or y is zero. If it is, all of the angular momentum is linear in the corresponding x or y direction.
+  if(x_diff == 0)
+  {
+    linear_momentum.x += p_magnitude;
+    return linear_momentum;
+  }
+  if(y_diff == 0)
+  {
+    linear_momentum.y += p_magnitude;
+    return linear_momentum;
+  }
+
+  slope = y_diff/x_diff;
+  p_slope = 1/slope;
+
+  double theta = atan(p_slope);
+  linear_momentum.x += p_magnitude*sin(theta);
+  linear_momentum.y += p_magnitude*cos(theta);
+  return linear_momentum;
+}
+
+uint32_t Particle::get_mass()
+{
+  return mass;
+}
+
+void Particle::increment_y_velocity(double dy)
+{
+  y_velocity += dy;
+}
+
+void Particle::increment_x_velocity(double dx)
+{
+  x_velocity += dx;
+}
+
+void Particle::increment_angular_velocity(double dw)
+{
+  angular_velocity += dw;
+}
+
+double Particle::get_y_velocity()
+{
+  return y_velocity;
+}
+
+double Particle::get_x_velocity()
+{
+  return x_velocity;
+}
+
+coord_t Particle::get_center_mass_coord()
+{
+  return center_mass_coord;
+}
+
+double Particle::get_angular_velocity()
+{
+  return angular_velocity;
+}
+
+void Particle::set_particles_array(Particle** par_arr)
+{
+  particles = par_arr;
+}
+
+double Particle::get_moment_of_inertia()
+{
+  return moment_of_inertia;
 }

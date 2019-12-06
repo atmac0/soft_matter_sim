@@ -3,18 +3,19 @@
 
 Field::Field()
 {  
-  for(int32_t i=0; i<FIELD_WIDTH; i++)
+  for(int32_t i = 0; i < FIELD_WIDTH; i++)
   {
-    for(int32_t j=0; j<FIELD_HEIGHT; j++)
+    for(int32_t j = 0; j < FIELD_HEIGHT; j++)
     {
-      field[i][j] = 0;
+      field[i][j] = -1;
     }
-  } 
+  }
+
+  frame_num = 1;
 }
 
-int32_t Field::field_to_png(uint32_t frame_num)
+int32_t Field::field_to_png()
 {
-
   char input_name[50];
   char output_name[50];
 
@@ -32,11 +33,11 @@ int32_t Field::field_to_png(uint32_t frame_num)
   sf::Color w(255,255,255);
   sf::Color b(0,0,0);
   
-  for(int32_t i=0; i<FIELD_WIDTH; i++)
+  for(int32_t i = 0; i < FIELD_WIDTH; i++)
   {
-    for(int32_t j=0; j<FIELD_HEIGHT; j++)
+    for(int32_t j = 0; j < FIELD_HEIGHT; j++)
     {
-      if(field[i][j] == 0)
+      if(field[i][j] == -1)
       {
 	image.setPixel(i,j,w);
       }
@@ -52,14 +53,14 @@ int32_t Field::field_to_png(uint32_t frame_num)
     return -1;
   }
 
+  frame_num++;
   return 0;
 }
 
-void Field::place_edge_in_field(coord_t point, uint32_t particle_num, Collisions* collisions)
+void Field::place_edge_in_field(coord_t point, field_t particle_num, Collisions* collisions)
 {
-  
   //If there is already an edge at this point in the field, record the location and particles interacting as a collision.
-  if(field[point.x][point.y] != 0 && field[point.x][point.y] != particle_num)
+  if(field[point.x][point.y] != -1 && field[point.x][point.y] != particle_num)
   {
     collision_t collision;
     coord_t collision_coord;
@@ -77,12 +78,12 @@ void Field::place_edge_in_field(coord_t point, uint32_t particle_num, Collisions
   field[point.x][point.y] = particle_num;
 }
 
-uint16_t Field::get_particle_at(coord_t point)
+field_t Field::get_particle_at(coord_t point)
 {
   return field[point.x%FIELD_WIDTH][point.y%FIELD_HEIGHT];
 }
 
 void Field::clear_particle_at(coord_t point)
 {
-  field[point.x%FIELD_WIDTH][point.y%FIELD_HEIGHT] = 0;
+  field[point.x%FIELD_WIDTH][point.y%FIELD_HEIGHT] = -1;
 }

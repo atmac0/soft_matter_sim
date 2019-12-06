@@ -2,7 +2,6 @@
 
 Collisions::Collisions(Particle_type particle_type)
 {
-
   uint32_t max_collisions;
   
   if(particle_type == SQUARE)

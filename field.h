@@ -16,11 +16,12 @@
 class Field
 {
 private:
-  uint16_t field[FIELD_WIDTH][FIELD_HEIGHT];
+  field_t field[FIELD_WIDTH][FIELD_HEIGHT];
+  uint32_t frame_num;
 public:
   Field();
-  int32_t field_to_png(uint32_t frame_num);
-  void place_edge_in_field(coord_t point, uint32_t particle_num, Collisions* collisions);
-  uint16_t get_particle_at(coord_t point);
+  int32_t field_to_png();
+  void place_edge_in_field(coord_t point, field_t particle_num, Collisions* collisions);
+  field_t get_particle_at(coord_t point);
   void  clear_particle_at(coord_t point);
 };

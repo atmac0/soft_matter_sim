@@ -13,28 +13,32 @@ class Particle
 {
 private:
  
-  uint16_t particle_num;            //unique number to use as a particle identifier
+  field_t particle_num;            //unique number to use as a particle identifier
   Particle_type particle_type;      //type of particle, used to identify shape.
 
-  double angular_velocity;          //current angular velocity, described in rads/micro_second
-  double orientation;               //orientation measured as an angle in radians. Describes the current angle of the object,
-                                    //relative to the non-rotated orientation.
+  double angular_velocity;          //current angular velocity, described in rads/micro_second, in the clockwise direction.
+  double orientation;               /*orientation measured as an angle in radians. Describes the current angle of the object,
+				      in the clockwise direction, relative to the non-rotated orientation. */
 
   double x_velocity;                //translational velocity in the x direction, measured as left to right as the increasing direction, in micro-meters per micro-second
   double y_velocity;                //translational velocity in the y direction, measured as up to down as the increasing direction in micro-meters per micro-second
 
-  uint32_t moment_of_inertia;       //moment of inertia. dependent on mass and size of particle
-
+  uint32_t mass;
+  double moment_of_inertia;       //moment of inertia. dependent on mass and size of particle
+  
   coord_t center_mass_coord;          //coordinate in the field of the center of mass
   double x_position_granular;      //x position within a cell, setting the origin at the left side of the cell
   double y_position_granular;      //y position within a cell, setting the origin at the top of the cell
+
+  double relative_time;
   
   Field* field;
   
   std::vector<coord_t> edge_locations;           //list of all the coordinates of the location of edges. To be used for the deletion of edged
+  Particle** particles;
   
 public:
-  Particle(Field* field_, uint16_t par_num, Particle_type par_type, double angular_vel, double orient, double x_vel, double y_vel, coord_t cm_coord);
+  Particle(Field* field_, field_t par_num, Particle_type par_type, double angular_vel, double orient, double x_vel, double y_vel, coord_t cm_coord);
   int32_t hypotenuse(int32_t x, int32_t y);
   Collisions* draw_square();
   Collisions* draw_edges();
@@ -50,4 +54,17 @@ public:
   uint32_t translate_y_by_granular(double granularity);
   uint32_t translate_x_by_granular(double granularity);
   void rotate_particle(double time_span);
+  momentum_t find_linear_momentum_at(coord_t point);
+  uint32_t get_mass();
+  coord_t get_center_mass_coord();
+  double get_x_velocity();
+  double get_y_velocity();
+  void increment_y_velocity(double dy);
+  void increment_x_velocity(double dx);
+  void find_change_in_momentum(momentum_t linear_momentum, coord_t cm_coord, coord_t coll_location, momentum_t* dp_t, double* dp_l);
+  momentum_t find_linear_momentum_at(coord_t point, field_t particle_num);
+  double get_angular_velocity();
+  void set_particles_array(Particle** par_arr);
+  double get_moment_of_inertia();
+  void increment_angular_velocity(double dw);
 };
