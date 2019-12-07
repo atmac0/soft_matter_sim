@@ -162,96 +162,45 @@ void Particle::delete_edges()
 
 void Particle::propagate()
 {
-
-  double time = 0; //time spent propogating
-
+  
   double x_cell_velocity = abs(x_velocity)/CELL_SIZE; //convert x velocity to cells per micro-second
   double y_cell_velocity = abs(y_velocity)/CELL_SIZE; //convert y velocity to cells per micro-second
-
+  
   double x_cell_time     = 1/x_cell_velocity; //time spent per cell movement
   double y_cell_time     = 1/y_cell_velocity;
 
   double x_distance_to_travel = y_cell_time * abs(x_velocity);
-  double y_distance_to_travel;
-
-  uint32_t x_cells_to_travel;
-  uint32_t y_cells_to_travel;
-  
-  double x_cell_int_as_double; //used to store the integer portion of the x granular position
-  double y_cell_int_as_double; //used to store the integer portion of the y granular position
-
-  double x_granular_decimal; //used to store the portion of the x granular position after the decimal
-  double y_granular_decimal; //used to store the portion of the y granular position after the decimal
+  double y_distance_to_travel = x_cell_time * abs(y_velocity);
   
   Collisions* collisions;
 
-  /*propogate the particle for the TIME_INCREMENT amout of time. Curret time is kept track of relative to the change in the y coordinate.
-   For every cell moved in the y direction, move x_y_ratio in the x direction. The movement in the y direction will occur first, followed
-   by a redraw. For every whole integer in x_y_ratio, the particle will be propagated, with a redraw at each cell, in the x direction that
-  number of cells. The rollover will be stored in the granular position variable of the particle.*/
-  while(time < TIME_INCREMENT)
+  if(x_cell_time < y_cell_time)
   {
-    /*Check if the particle will travel atleast 1 cell in the y direction in the time remaining. If it does, proceed by incrementing
-      the y direction by one, and the x direction by the number it should travel, determined by the x_y_ratio.*/
-    
-    if((time + y_cell_time) <= TIME_INCREMENT)
-    {
+    rotate_particle(x_cell_time);
+    collisions = translate_x_by_1();
+    resolve_collisions(collisions);
 
-      rotate_particle(y_cell_time);
-      
+    if(translate_y_by_granular(y_distance_to_travel) == 1)
+    {
       collisions = translate_y_by_1();
       resolve_collisions(collisions);
-
-      /*being a little tricky here. translate_x_by_granular will return either 0 or 1 if the cell overflows. the modf will take the integer
-	portion of the double x_distance_to_travel, which will be assigned to x_cells_to_travel. If the decimal remainder overflows the the cell,
-	the number of cells to travel will then have 1 added to it.*/
-      
-      x_cells_to_travel = 0;
-      x_cells_to_travel += translate_x_by_granular(modf(x_distance_to_travel, &x_cell_int_as_double));
-      x_cells_to_travel += (uint32_t)x_cell_int_as_double;
-
-      for(uint32_t i=0; i<x_cells_to_travel; i++)
-      {
-      	collisions = translate_x_by_1();
-      	resolve_collisions(collisions);
-      }
-      
-      time += y_cell_time;
     }
-    /*If incrementing once in the y direction would go over the time increment limit, add the granular amount. If the granular amount goes over one,
-      propogate in the y direction. Then propogate x by the correct proportion.*/
-    else if((time + y_cell_time) > TIME_INCREMENT)
+
+    relative_time += x_cell_time;
+  }
+  else if(y_cell_time < x_cell_time)
+  {
+    rotate_particle(y_cell_time);
+    collisions = translate_y_by_1();
+    resolve_collisions(collisions);
+
+    if(translate_x_by_granular(x_distance_to_travel) == 1)
     {
-      double time_remaining = ((double)TIME_INCREMENT) - time;
-
-      rotate_particle(time_remaining);
-      
-      y_distance_to_travel = abs(y_velocity) * time_remaining;
-      x_distance_to_travel = abs(x_velocity) * time_remaining;
-
-      if(translate_y_by_granular(y_distance_to_travel) == 1)
-      {
-    	collisions = translate_y_by_1();
-	resolve_collisions(collisions);
-      }
-      else
-      {
-	//This is only called if the y velocity is very small. Without this, the particle will not be drawn if it is stationary.
-	delete_edges();
-	resolve_collisions(draw_edges());
-      }
-
-      x_cells_to_travel = 0;
-      x_cells_to_travel += translate_x_by_granular(modf(x_distance_to_travel, &x_cell_int_as_double));
-      x_cells_to_travel += (uint32_t)x_cell_int_as_double;
-
-      for(uint32_t i = 0; i < x_cells_to_travel; i++)
-      {
-    	collisions = translate_x_by_1();
-    	resolve_collisions(collisions);
-      }
-      time = TIME_INCREMENT;
+      collisions = translate_x_by_1();
+      resolve_collisions(collisions);
     }
+    
+    relative_time += y_cell_time;
   }
 }
 
@@ -371,6 +320,12 @@ uint32_t Particle::translate_x_by_granular(double granularity)
 
 void Particle::resolve_collisions(Collisions* collisions)
 {
+  
+  if(collisions->counts() == 0)
+  {
+    return;
+  }
+  
     //dp_t: change in translational momentum; dp_l: change in angular momentum. 1 is the current particle in iteration.
     // 2 is the particle in which the collision happened.
   momentum_t delta_translational[NUM_PARTICLES] = {0};
@@ -384,7 +339,6 @@ void Particle::resolve_collisions(Collisions* collisions)
   //Iterate through all the collisions that occured during the most recent drawing
   for(uint32_t i = 0; i < collisions->counts(); i++)
   {   
-    std::cout << "Collision at (" << collisions->get_collision_at(i).location.x << "," << collisions->get_collision_at(i).location.y << ") between particle " << collisions->get_collision_at(i).particle1 << " and particle " << collisions->get_collision_at(i).particle2 << "!\n";
 
     //Get the location of the collision and the identifying number of the particles that interacted
     collision_location = collisions->get_collision_at(i).location;
@@ -401,11 +355,7 @@ void Particle::resolve_collisions(Collisions* collisions)
 
     //Find the transfter of momentum due to the individual edge points that collided. The final change will be the sum of the change due to
     //every colliding edge point.
-    std::cout << "Change in momentum of particle " << particle_2_num << " due to collision at ("
-	      << collision_location.x << "," << collision_location.y << "):\n";
     find_change_in_momentum(p1, particle_2_cm_coord, collision_location, &delta_translational[particle_2_num], &delta_angular[particle_2_num]);
-    std::cout << "Change in momentum of particle " << particle_1_num << " due to collision at ("
-	      << collision_location.x << "," << collision_location.y << "):\n";
     find_change_in_momentum(p2, particle_1_cm_coord, collision_location, &delta_translational[particle_1_num], &delta_angular[particle_1_num]);
   }
 
@@ -416,13 +366,16 @@ void Particle::resolve_collisions(Collisions* collisions)
   {
     Particle* particle = particles[i];
     //To find the velocity, p=mv, where v=p/m. This is why you must divide by momentum by the mass.
-    if(collisions->counts() != 0)
-    {
-      double average_dx_trans_vel = (delta_translational[i].x/particle->get_mass())/collisions->counts();
-      double average_dy_trans_vel = (delta_translational[i].y/particle->get_mass())/collisions->counts();
-      particle->increment_x_velocity(average_dx_trans_vel);
-      particle->increment_y_velocity(average_dy_trans_vel);
-    }
+    double average_dx_trans_vel = (delta_translational[i].x/particle->get_mass())/collisions->counts();
+    double average_dy_trans_vel = (delta_translational[i].y/particle->get_mass())/collisions->counts();
+    particle->increment_x_velocity(average_dx_trans_vel);
+    particle->increment_y_velocity(average_dy_trans_vel);
+    increment_angular_velocity(delta_angular[i]); 
+
+    std::cout << "Particle " << i << ":\n";
+    std::cout << "dx_trans_vel: " << average_dx_trans_vel << "\n";
+    std::cout << "dy_trans_vel: " << average_dy_trans_vel << "\n"; 
+    std::cout << "dl angular  : " << delta_angular[i] << "\n\n";       
   }
 }
 
@@ -431,21 +384,63 @@ find the projection of the linear momentum vector with the vector pointing from 
 vector will be the */
 void Particle::find_change_in_momentum(momentum_t linear_momentum, coord_t cm_coord, coord_t coll_location, momentum_t* dp_t, double* dp_l)
 {
-  uint32_t x_diff    = cm_coord.x - coll_location.x;
-  uint32_t y_diff    = cm_coord.y - coll_location.y;
-  double   r_mag = sqrt(pow(x_diff,2) + pow(y_diff,2));
-  double lin_mom_mag = sqrt(pow(linear_momentum.x,2) + pow(linear_momentum.y,2));  
+  int32_t x_diff      = cm_coord.x - coll_location.x;
+  int32_t y_diff      = cm_coord.y - coll_location.y;
+  double   r_mag       = sqrt(pow(x_diff,2) + pow(y_diff,2));
+  double   lin_mom_mag = sqrt(pow(linear_momentum.x,2) + pow(linear_momentum.y,2));  
   
-  dp_t->x += (linear_momentum.x * x_diff)/r_mag;
-  dp_t->y += (linear_momentum.y * y_diff)/r_mag;
+  dp_t->x += (linear_momentum.x * abs(x_diff))/r_mag;
+  dp_t->y += (linear_momentum.y * abs(y_diff))/r_mag;
  
-  double dp_lx = (linear_momentum.x *  y_diff)/r_mag;
-  double dp_ly = (linear_momentum.y * -x_diff)/r_mag;
-  
-  *dp_l += sqrt( pow(dp_lx,2) + pow(dp_ly,2) );
+  double dp_lx = (linear_momentum.x *  abs(y_diff))/r_mag;
+  double dp_ly = (linear_momentum.y * -abs(x_diff))/r_mag;
 
-  std::cout << "Change in linear momentum: dx = " << (linear_momentum.x * x_diff)/r_mag << ", dy = " << (linear_momentum.y * y_diff)/r_mag << "\n";
-  std::cout << "Change in angular momntum: dl = " << sqrt( pow(dp_lx,2) + pow(dp_ly,2) ) << "\n";
+  int32_t l_direction = determine_direction_of_angular_change(x_diff, y_diff, dp_lx, dp_ly);
+  
+  *dp_l += l_direction*sqrt( pow(dp_lx,2) + pow(dp_ly,2) );
+}
+
+/*Returns 1 if the angular change is in the clockwise direction, -1 if in the counter clockwise direction. Set up a matrix where the elements are
+organzied as so:
+
+x_diff, y_diff
+dp_lx , dp_ly
+
+if the direction of change is in the couter clockwise direction, cross multiplications shows: x_diff*dp_ly >= 0 && dp_lx * y_diff <= 0 */
+int32_t Particle::determine_direction_of_angular_change(int32_t x_diff, int32_t y_diff, double dp_lx, double dp_ly)
+{
+  if(((x_diff * dp_ly) >= 0) && ((dp_lx * y_diff) <= 0))
+  {
+    return -1;
+  }
+
+  return 1;
+  
+  /*for counter clockwise:
+    diff: +x, 0y
+    p   : 0x, +y
+
+    diff: +x, +y
+    p:    -x, +y
+
+    diff: 0x, +y
+    p   : -x, 0y
+
+    diff: -x, +y
+    p   : -x, -y
+
+    diff: -x, 0y
+    p   : 0x, -y
+
+    diff: -x, -y
+    p   : +x, -y
+
+    diff: 0x, -y
+    p   : +x, 0y
+
+    diff: +x, -y
+    p   : +x, +y    
+  */
 }
 
 /*Find the linear momentum at a point on the edge of a particle.
@@ -487,36 +482,35 @@ momentum_t Particle::find_linear_momentum_at(coord_t point, field_t particle_num
   ........................
 */
 
-  uint32_t x_diff = point.x - particle->get_center_mass_coord().x;
-  uint32_t y_diff = point.y - particle->get_center_mass_coord().y;
-
-  double w        = particle->get_angular_velocity();
-  double I        = particle->get_moment_of_inertia();
+  uint32_t x_diff = abs(point.x - particle->get_center_mass_coord().x);
+  uint32_t y_diff = abs(point.y - particle->get_center_mass_coord().y);
   double r        = sqrt(pow(x_diff,2) + pow(y_diff,2));
   
-  double slope;    
-  double p_slope;   
-  
-  double p_magnitude = I*w/r;
+  double w        = particle->get_angular_velocity();
+  double I        = particle->get_moment_of_inertia();
+  //The linear momentum due to the angular momentum at a distance r from the square
+  double p_from_ang = I*w/r;
 
   //Check if the difference in the x or y is zero. If it is, all of the angular momentum is linear in the corresponding x or y direction.
   if(x_diff == 0)
   {
-    linear_momentum.x += p_magnitude;
+    linear_momentum.x += p_from_ang;
     return linear_momentum;
   }
   if(y_diff == 0)
   {
-    linear_momentum.y += p_magnitude;
+    linear_momentum.y += p_from_ang;
     return linear_momentum;
   }
 
-  slope = y_diff/x_diff;
-  p_slope = 1/slope;
-
-  double theta = atan(p_slope);
-  linear_momentum.x += p_magnitude*sin(theta);
-  linear_momentum.y += p_magnitude*cos(theta);
+  //slope of the line from the center of mass to the point
+  double slope = y_diff/x_diff;
+  //The slope of the line in the direction of the angular momentum
+  double p_ang_slope = 1/slope;   
+  double theta = atan(p_ang_slope);
+  
+  linear_momentum.x += p_from_ang*sin(theta);
+  linear_momentum.y += p_from_ang*cos(theta);
   return linear_momentum;
 }
 
@@ -568,4 +562,9 @@ void Particle::set_particles_array(Particle** par_arr)
 double Particle::get_moment_of_inertia()
 {
   return moment_of_inertia;
+}
+
+double Particle::get_relative_time()
+{
+  return relative_time;
 }

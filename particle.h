@@ -67,4 +67,6 @@ public:
   void set_particles_array(Particle** par_arr);
   double get_moment_of_inertia();
   void increment_angular_velocity(double dw);
+  double get_relative_time();
+  int32_t determine_direction_of_angular_change(int32_t x_diff, int32_t y_diff, double dp_lx, double dp_ly);
 };

@@ -10,12 +10,12 @@ Collisions::Collisions(Particle_type particle_type)
   }
 
   collisions = (collision_t*)malloc(sizeof(collision_t)*max_collisions);
-  collision_count = 0;
+  collision_counts = 0;
 }
 
 uint32_t  Collisions::counts()
 {
-  return collision_count;
+  return collision_counts;
 }
 
 collision_t Collisions::get_collision_at(uint32_t index)
@@ -25,8 +25,8 @@ collision_t Collisions::get_collision_at(uint32_t index)
 
 void Collisions::add_collision(collision_t collision)
 {
-  collisions[collision_count] = collision;
-  collision_count++;
+  collisions[collision_counts] = collision;
+  collision_counts++;
 }
 
 Collisions::~Collisions()

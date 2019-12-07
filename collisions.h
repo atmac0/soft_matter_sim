@@ -15,8 +15,9 @@ struct collision_t
 class Collisions
 {
  private:
-  uint32_t collision_count;
+  uint32_t collision_counts;
   collision_t* collisions;
+  
  public:
   Collisions(Particle_type particle_type);
   uint32_t counts();

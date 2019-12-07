@@ -13,6 +13,8 @@
 #include "field.h"
 #include "particle.h"
 
+field_t find_lowest_time_particle(Particle* particles[NUM_PARTICLES]);
+
 int32_t main()
 {
  
@@ -22,15 +24,15 @@ int32_t main()
   Particle_type par0 = SQUARE;
   double ang_vel0    = 0;
   double orient0     = 0;
-  double x_vel0      = 10;
+  double x_vel0      = 2;
   double y_vel0      = 0;
-  coord_t cm_coord0  = {300,500};
+  coord_t cm_coord0  = {425,500};
 
   field_t par_num1  = 1;
   Particle_type par1 = SQUARE;
   double ang_vel1    = 0;
   double orient1     = 0;
-  double x_vel1      = -10;
+  double x_vel1      = -1;
   double y_vel1      = 0;
   coord_t cm_coord1 = {500,500};  
 
@@ -57,15 +59,39 @@ int32_t main()
     particles[i]->draw_edges();
   }
   
-  for(uint32_t frame_num = 1; frame_num < 400; frame_num++)
+  for(uint32_t iterations = 1; iterations < 40000; iterations++)
   {
     for(int i = 0; i < NUM_PARTICLES; i++)
     {
-      particles[i]->propagate();
+      field_t lowest_time_particle = find_lowest_time_particle(particles);
+      particles[lowest_time_particle]->propagate();
     }
+
     my_field.field_to_png();
+    
+    // if(iterations % 1 == 0)
+    // {
+    //   my_field.field_to_png();
+    // }
   }
   
   return 0;
 }
 
+
+field_t find_lowest_time_particle(Particle* particles[NUM_PARTICLES])
+{
+  double time = particles[0]->get_relative_time();
+  field_t par_num = 0;
+  
+  for(uint32_t i = 1; i < NUM_PARTICLES; i++)
+  {
+    if(particles[i]->get_relative_time() < time)
+    {
+      time = particles[i]->get_relative_time();
+      par_num = i;
+    }
+  }
+
+  return par_num;
+}
