@@ -19,14 +19,18 @@ int32_t main()
 {
  
   Field my_field;
+
+  uint32_t frame_counter = 0;
+  uint32_t time_increment = 5;
+  uint32_t time = 0;
   
   field_t par_num0  = 0;
   Particle_type par0 = SQUARE;
-  double ang_vel0    = 0;
+  double ang_vel0    = M_PI/15;
   double orient0     = 0;
-  double x_vel0      = 2;
+  double x_vel0      = 3 ;
   double y_vel0      = 0;
-  coord_t cm_coord0  = {425,500};
+  coord_t cm_coord0  = {450,510};
 
   field_t par_num1  = 1;
   Particle_type par1 = SQUARE;
@@ -40,9 +44,9 @@ int32_t main()
   Particle_type par2 = SQUARE;
   double ang_vel2    = -.25;
   double orient2     = M_PI/3;
-  double x_vel2      = 27;
-  double y_vel2      = 0;
-  coord_t cm_coord2 = {500,700};  
+  double x_vel2      = 0;
+  double y_vel2      = 4;
+  coord_t cm_coord2 = {500,450};  
   
   Particle my_particle0(&my_field, par_num0, par0, ang_vel0, orient0, x_vel0, y_vel0, cm_coord0);
   Particle my_particle1(&my_field, par_num1, par1, ang_vel1, orient1, x_vel1, y_vel1, cm_coord1); 
@@ -51,7 +55,7 @@ int32_t main()
   Particle* particles[NUM_PARTICLES];
   particles[0] = &my_particle0;
   particles[1] = &my_particle1;
-  //particles[2] = &my_particle2;
+  particles[2] = &my_particle2;
 
   for(int i = 0; i < NUM_PARTICLES; i++)
   {

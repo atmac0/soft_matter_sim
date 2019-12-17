@@ -50,10 +50,10 @@ public:
   void propagate();
   Collisions* translate_x_by_1();
   Collisions* translate_y_by_1();
+  Collisions* rotate_particle(double time_span);
   void resolve_collisions(Collisions* collisions);
   uint32_t translate_y_by_granular(double granularity);
   uint32_t translate_x_by_granular(double granularity);
-  void rotate_particle(double time_span);
   momentum_t find_linear_momentum_at(coord_t point);
   uint32_t get_mass();
   coord_t get_center_mass_coord();
@@ -61,7 +61,7 @@ public:
   double get_y_velocity();
   void increment_y_velocity(double dy);
   void increment_x_velocity(double dx);
-  void find_change_in_momentum(momentum_t linear_momentum, coord_t cm_coord, coord_t coll_location, momentum_t* dp_t, double* dp_l);
+  void find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t linear_momentum, coord_t cm_coord, coord_t coll_location, momentum_t dp_t[], double dp_l[]);
   momentum_t find_linear_momentum_at(coord_t point, field_t particle_num);
   double get_angular_velocity();
   void set_particles_array(Particle** par_arr);
@@ -69,4 +69,5 @@ public:
   void increment_angular_velocity(double dw);
   double get_relative_time();
   int32_t determine_direction_of_angular_change(int32_t x_diff, int32_t y_diff, double dp_lx, double dp_ly);
+  double find_r_cell_speed();
 };

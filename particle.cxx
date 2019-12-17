@@ -160,26 +160,90 @@ void Particle::delete_edges()
   edge_locations.clear();  
 }
 
+double Particle::find_r_cell_speed()
+{
+  if(particle_type == SQUARE)
+  {
+    double r = sqrt(2*pow((SQUARE_SIDE_LENGTH/2)/CELL_SIZE, 2)); //distance from cm to corner
+    return abs(r*angular_velocity); //w*r = distance travelled
+  }
+}
+
 void Particle::propagate()
 {
   
-  double x_cell_velocity = abs(x_velocity)/CELL_SIZE; //convert x velocity to cells per micro-second
-  double y_cell_velocity = abs(y_velocity)/CELL_SIZE; //convert y velocity to cells per micro-second
+  double x_cell_speed = abs(x_velocity)/CELL_SIZE; //convert x velocity to cells per micro-second
+  double y_cell_speed = abs(y_velocity)/CELL_SIZE; //convert y velocity to cells per micro-second
+  double r_cell_speed = find_r_cell_speed(); //Get rate at which fastest edge tranlates in cells per micro-second
   
-  double x_cell_time     = 1/x_cell_velocity; //time spent per cell movement
-  double y_cell_time     = 1/y_cell_velocity;
-
-  double x_distance_to_travel = y_cell_time * abs(x_velocity);
-  double y_distance_to_travel = x_cell_time * abs(y_velocity);
+  double x_cell_time     = 1/x_cell_speed; //time spent per cell movement
+  double y_cell_time     = 1/y_cell_speed;
+  double r_cell_time     = 1/r_cell_speed;
+  double x_distance_to_travel;
+  double y_distance_to_travel;
   
   Collisions* collisions;
 
-  if(x_cell_time < y_cell_time)
+  std::cout << "x_cell_speed: " << x_cell_speed << "\n";
+  std::cout << "y_cell_speed: " << y_cell_speed << "\n";
+  std::cout << "r_cell_speed: " << r_cell_speed << "\n\n";
+  
+  std::cout << "x_cell_time: " << x_cell_time << "\n";
+  std::cout << "y_cell_time: " << y_cell_time << "\n";
+  std::cout << "r_cell_time: " << r_cell_time << "\n\n";
+
+  if(r_cell_time > TIME_LIMIT && x_cell_time > TIME_LIMIT && y_cell_time > TIME_LIMIT)
+  {
+    collisions = rotate_particle(TIME_LIMIT);
+    resolve_collisions(collisions);
+
+    x_distance_to_travel = TIME_LIMIT * abs(x_velocity);
+    y_distance_to_travel = TIME_LIMIT * abs(y_velocity);
+
+    if(translate_y_by_granular(y_distance_to_travel) == 1)
+    {
+      collisions = translate_y_by_1();
+      resolve_collisions(collisions);
+    }
+
+    if(translate_x_by_granular(x_distance_to_travel) == 1)
+    {
+      collisions = translate_x_by_1();
+      resolve_collisions(collisions);
+    }
+
+    relative_time += TIME_LIMIT;    
+  }
+  if(r_cell_time < x_cell_time && r_cell_time < y_cell_time)
+  {
+    collisions = rotate_particle(r_cell_time);
+    resolve_collisions(collisions);
+
+    x_distance_to_travel = r_cell_time * abs(x_velocity);
+    y_distance_to_travel = r_cell_time * abs(y_velocity);
+    
+    if(translate_y_by_granular(y_distance_to_travel) == 1)
+    {
+      collisions = translate_y_by_1();
+      resolve_collisions(collisions);
+    }
+
+    if(translate_x_by_granular(x_distance_to_travel) == 1)
+    {
+      collisions = translate_x_by_1();
+      resolve_collisions(collisions);
+    }
+
+    relative_time += r_cell_time;
+  }
+  else if(x_cell_time < y_cell_time)
   {
     rotate_particle(x_cell_time);
     collisions = translate_x_by_1();
     resolve_collisions(collisions);
 
+    y_distance_to_travel = x_cell_time * abs(y_velocity);
+    
     if(translate_y_by_granular(y_distance_to_travel) == 1)
     {
       collisions = translate_y_by_1();
@@ -188,12 +252,14 @@ void Particle::propagate()
 
     relative_time += x_cell_time;
   }
-  else if(y_cell_time < x_cell_time)
+  else //if(y_cell_time < x_cell_time)
   {
     rotate_particle(y_cell_time);
     collisions = translate_y_by_1();
     resolve_collisions(collisions);
 
+    x_distance_to_travel = y_cell_time * abs(x_velocity);
+    
     if(translate_x_by_granular(x_distance_to_travel) == 1)
     {
       collisions = translate_x_by_1();
@@ -205,10 +271,14 @@ void Particle::propagate()
 }
 
 //add the rotational displacement (angular velocity * time span) to the orientation. If the orientation goes over 2*PI, take the remainder.
-void Particle::rotate_particle(double time_span)
+Collisions* Particle::rotate_particle(double time_span)
 {
+  delete_edges();
+  
   orientation += angular_velocity * time_span;
   orientation = fmod(orientation, M_PI*2);
+
+  return draw_edges();
 }
 
 /*Translate the particle by 1 in the direction appropriate to the current
@@ -341,13 +411,13 @@ void Particle::resolve_collisions(Collisions* collisions)
   {   
 
     //Get the location of the collision and the identifying number of the particles that interacted
-    collision_location = collisions->get_collision_at(i).location;
-    particle_1_num             = collisions->get_collision_at(i).particle1;
-    particle_2_num             = collisions->get_collision_at(i).particle2;
+    collision_location  = collisions->get_collision_at(i).location;
+    particle_1_num      = collisions->get_collision_at(i).particle1;
+    particle_2_num      = collisions->get_collision_at(i).particle2;
 
     //Get the center of mass positions of each particle
-    particle_1_cm_coord        = particles[particle_1_num]->center_mass_coord;
-    particle_2_cm_coord        = particles[particle_2_num]->center_mass_coord;
+    particle_1_cm_coord = particles[particle_1_num]->center_mass_coord;
+    particle_2_cm_coord = particles[particle_2_num]->center_mass_coord;
 
     //Find the linear momentum of the edge of each particle at the collision location
     p1 = find_linear_momentum_at(collision_location, particle_1_num);
@@ -355,8 +425,8 @@ void Particle::resolve_collisions(Collisions* collisions)
 
     //Find the transfter of momentum due to the individual edge points that collided. The final change will be the sum of the change due to
     //every colliding edge point.
-    find_change_in_momentum(p1, particle_2_cm_coord, collision_location, &delta_translational[particle_2_num], &delta_angular[particle_2_num]);
-    find_change_in_momentum(p2, particle_1_cm_coord, collision_location, &delta_translational[particle_1_num], &delta_angular[particle_1_num]);
+    find_change_in_momentum(particle_1_num, particle_2_num, p1, particle_2_cm_coord, collision_location, delta_translational, delta_angular);
+    find_change_in_momentum(particle_2_num, particle_1_num, p2, particle_1_cm_coord, collision_location, delta_translational, delta_angular);
   }
 
   //This is ~dirty~. I had to use a list of length NUM_PARTICLES because I needed some way to keep track of which particles were interacted with.
@@ -368,39 +438,51 @@ void Particle::resolve_collisions(Collisions* collisions)
     //To find the velocity, p=mv, where v=p/m. This is why you must divide by momentum by the mass.
     double average_dx_trans_vel = (delta_translational[i].x/particle->get_mass())/collisions->counts();
     double average_dy_trans_vel = (delta_translational[i].y/particle->get_mass())/collisions->counts();
+    double average_dl           = (delta_angular[i]/particle->get_moment_of_inertia())/collisions->counts();
+    
     particle->increment_x_velocity(average_dx_trans_vel);
     particle->increment_y_velocity(average_dy_trans_vel);
-    increment_angular_velocity(delta_angular[i]); 
+    particle->increment_angular_velocity(average_dl); 
 
+    std::cout << "Collision count: " << collisions->counts() << "\n";
     std::cout << "Particle " << i << ":\n";
     std::cout << "dx_trans_vel: " << average_dx_trans_vel << "\n";
     std::cout << "dy_trans_vel: " << average_dy_trans_vel << "\n"; 
-    std::cout << "dl angular  : " << delta_angular[i] << "\n\n";       
+    std::cout << "dl angular  : " << average_dl << "\n\n";       
   }
 }
 
-/*The change in momentum has two parts, the change in translational momentum, and the change in angular momentum. To find the translational change, 
+/*Find the change in momentum due to particle one onto particle 2. The change in momentum has two parts, the change in translational momentum, and the change in angular momentum. To find the translational change, 
 find the projection of the linear momentum vector with the vector pointing from the colliding edge to the center of mass. The x and y components of this
 vector will be the */
-void Particle::find_change_in_momentum(momentum_t linear_momentum, coord_t cm_coord, coord_t coll_location, momentum_t* dp_t, double* dp_l)
+void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t linear_momentum, coord_t cm_coord, coord_t coll_location, momentum_t dp_t[], double dp_l[])
 {
   int32_t x_diff      = cm_coord.x - coll_location.x;
   int32_t y_diff      = cm_coord.y - coll_location.y;
   double   r_mag       = sqrt(pow(x_diff,2) + pow(y_diff,2));
   double   lin_mom_mag = sqrt(pow(linear_momentum.x,2) + pow(linear_momentum.y,2));  
+
+  double d_linear_x = (linear_momentum.x * abs(x_diff))/r_mag;
+  double d_linear_y = (linear_momentum.y * abs(y_diff))/r_mag;
+
+  dp_t[par2].x += d_linear_x;
+  dp_t[par2].y += d_linear_y;
+
+  dp_t[par1].x -= d_linear_x;
+  dp_t[par1].y -= d_linear_y;
   
-  dp_t->x += (linear_momentum.x * abs(x_diff))/r_mag;
-  dp_t->y += (linear_momentum.y * abs(y_diff))/r_mag;
- 
   double dp_lx = (linear_momentum.x *  abs(y_diff))/r_mag;
   double dp_ly = (linear_momentum.y * -abs(x_diff))/r_mag;
 
   int32_t l_direction = determine_direction_of_angular_change(x_diff, y_diff, dp_lx, dp_ly);
+
+  double d_angular_momentum = l_direction*sqrt( pow(dp_lx,2) + pow(dp_ly,2) );
   
-  *dp_l += l_direction*sqrt( pow(dp_lx,2) + pow(dp_ly,2) );
+  dp_l[par2] += d_angular_momentum;
+  dp_l[par1] -= d_angular_momentum;
 }
 
-/*Returns 1 if the angular change is in the clockwise direction, -1 if in the counter clockwise direction. Set up a matrix where the elements are
+/*Returns -1 if the angular change is in the clockwise direction, 1 if in the counter clockwise direction. Set up a matrix where the elements are
 organzied as so:
 
 x_diff, y_diff
