@@ -10,7 +10,9 @@ enum Lowest_particle_time: int16_t {X_TIME, Y_TIME, ROTATIONAL_TIME};
 #define CELL_SIZE 1 //size of each cell in the field in micro-meters. 
 
 #define TIME_INCREMENT 1 //size of the time increment in micro-seconds.
-#define TIME_LIMIT     5
+#define TIME_LIMIT     5 //maximum length of time 
+
+#define LINE_THICKNESS 4
 
 #define SQUARE_SIDE_LENGTH 20 //please keep this number even. This number is the length of one side of the square in micrometers.
 #define NUM_SIDES_SQUARE 4

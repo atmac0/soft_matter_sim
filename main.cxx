@@ -14,69 +14,39 @@
 #include "particle.h"
 
 field_t find_lowest_time_particle(Particle* particles[NUM_PARTICLES]);
+Particle make_random_square(field_t par_num, coord_t cm_coord, Field* my_field);
+void initialize_particles(Particle* particles[NUM_PARTICLES], Field* my_field);
 
 int32_t main()
 {
- 
+  std::cout <<"here";
+  std::cout << std::rand();
   Field my_field;
 
   uint32_t frame_counter = 0;
   uint32_t time_increment = 5;
   uint32_t time = 0;
-  
-  field_t par_num0  = 0;
-  Particle_type par0 = SQUARE;
-  double ang_vel0    = M_PI/15;
-  double orient0     = 0;
-  double x_vel0      = 3 ;
-  double y_vel0      = 0;
-  coord_t cm_coord0  = {450,510};
-
-  field_t par_num1  = 1;
-  Particle_type par1 = SQUARE;
-  double ang_vel1    = 0;
-  double orient1     = 0;
-  double x_vel1      = -1;
-  double y_vel1      = 0;
-  coord_t cm_coord1 = {500,500};  
-
-  field_t par_num2  = 2;
-  Particle_type par2 = SQUARE;
-  double ang_vel2    = -.25;
-  double orient2     = M_PI/3;
-  double x_vel2      = 0;
-  double y_vel2      = 4;
-  coord_t cm_coord2 = {500,450};  
-  
-  Particle my_particle0(&my_field, par_num0, par0, ang_vel0, orient0, x_vel0, y_vel0, cm_coord0);
-  Particle my_particle1(&my_field, par_num1, par1, ang_vel1, orient1, x_vel1, y_vel1, cm_coord1); 
-  Particle my_particle2(&my_field, par_num2, par2, ang_vel2, orient2, x_vel2, y_vel2, cm_coord2);
+  uint32_t end_time = 1000000;
 
   Particle* particles[NUM_PARTICLES];
-  particles[0] = &my_particle0;
-  particles[1] = &my_particle1;
-  particles[2] = &my_particle2;
-
-  for(int i = 0; i < NUM_PARTICLES; i++)
-  {
-    particles[i]->set_particles_array(particles);
-    particles[i]->draw_edges();
-  }
+  initialize_particles(particles, &my_field);
   
-  for(uint32_t iterations = 1; iterations < 40000; iterations++)
+  field_t lowest_time_particle;
+  
+  while(time < end_time)
   {
+    std::cout << "TIME: " << time << "\n";
     for(int i = 0; i < NUM_PARTICLES; i++)
     {
-      field_t lowest_time_particle = find_lowest_time_particle(particles);
+      lowest_time_particle = find_lowest_time_particle(particles);
       particles[lowest_time_particle]->propagate();
     }
 
-    my_field.field_to_png();
-    
-    // if(iterations % 1 == 0)
-    // {
-    //   my_field.field_to_png();
-    // }
+    if(time <= particles[lowest_time_particle]->get_relative_time())
+    {
+      my_field.field_to_png();
+      time += time_increment;
+    }
   }
   
   return 0;
@@ -96,6 +66,61 @@ field_t find_lowest_time_particle(Particle* particles[NUM_PARTICLES])
       par_num = i;
     }
   }
-
+  
   return par_num;
+}
+
+Particle make_random_square(field_t par_num, coord_t cm_coord, Field* my_field)
+{
+
+  Particle_type par_type = SQUARE;
+  double ang_vel    = (std::rand()/double(RAND_MAX))/15;
+  double orient     = std::rand()/double(RAND_MAX);
+  double x_vel      = (std::rand()/double(RAND_MAX))*5;
+  double y_vel      = (std::rand()/double(RAND_MAX))*5;
+  
+  Particle particle(my_field, par_num, par_type, ang_vel, orient, x_vel, y_vel, cm_coord);
+  return particle;
+}
+
+void initialize_particles(Particle* particles[NUM_PARTICLES], Field* my_field)
+{
+
+  uint32_t x_pos = 10;
+  uint32_t y_pos = 10;
+  coord_t cm_coord;
+  Particle particle;
+  
+  for(uint32_t par_num = 0; par_num < NUM_PARTICLES; par_num++)
+  {
+
+    cm_coord.x = x_pos;
+    cm_coord.y = y_pos;
+
+    Particle_type par_type = SQUARE;
+    double ang_vel    = (std::rand()/double(RAND_MAX))/15;
+    double orient     = std::rand()/double(RAND_MAX);
+    double x_vel      = (std::rand()/double(RAND_MAX))*5;
+    double y_vel      = (std::rand()/double(RAND_MAX))*5;
+    
+    particle = new Particle(my_field, par_num, par_type, ang_vel, orient, x_vel, y_vel, cm_coord);
+    
+    particles[par_num] = &particle;
+
+    x_pos += 40;
+    if(x_pos > (FIELD_WIDTH - 20))
+    {
+      x_pos = 10;
+      y_pos += 40;
+    }
+  }
+
+  for(int i = 0; i < NUM_PARTICLES; i++)
+  {
+    particles[i]->set_particles_array(particles);
+    particles[i]->draw_edges();
+  }
+
+  my_field->field_to_png();
+  
 }

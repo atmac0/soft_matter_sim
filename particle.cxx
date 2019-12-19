@@ -66,36 +66,38 @@ Collisions* Particle::draw_square()
   Collisions* collisions_p = new Collisions(SQUARE);
   coord_t coord_field;
   coord_t coord_square;
-  
-  for(int32_t i = -side_cell_count/2; i <= side_cell_count/2; i++)
+  for(int32_t j = 0; j < LINE_THICKNESS; j++)
   {
-    //right side
-    coord_square.x = side_cell_count/2;
-    coord_square.y = i;
-    coord_field = translate_to_field(coord_square);
-    field->place_edge_in_field(coord_field, particle_num, collisions_p);
-    add_edge_location(coord_field);
+    for(int32_t i = -side_cell_count/2; i <= side_cell_count/2; i++)
+    {
+      //right side
+      coord_square.x = side_cell_count/2 - j;
+      coord_square.y = i;
+      coord_field = translate_to_field(coord_square);
+      field->place_edge_in_field(coord_field, particle_num, collisions_p);
+      add_edge_location(coord_field);
 
-    //top side
-    coord_square.x = i;
-    coord_square.y = -side_cell_count/2;
-    coord_field = translate_to_field(coord_square);
-    field->place_edge_in_field(coord_field, particle_num, collisions_p);
-    add_edge_location(coord_field);
+      //top side
+      coord_square.x = i;
+      coord_square.y = -side_cell_count/2 + j;
+      coord_field = translate_to_field(coord_square);
+      field->place_edge_in_field(coord_field, particle_num, collisions_p);
+      add_edge_location(coord_field);
     
-    //left side
-    coord_square.x = -side_cell_count/2;
-    coord_square.y = i;
-    coord_field = translate_to_field(coord_square);
-    field->place_edge_in_field(coord_field, particle_num, collisions_p);
-    add_edge_location(coord_field);
+      //left side
+      coord_square.x = -side_cell_count/2 + j;
+      coord_square.y = i;
+      coord_field = translate_to_field(coord_square);
+      field->place_edge_in_field(coord_field, particle_num, collisions_p);
+      add_edge_location(coord_field);
     
-    //bottom side
-    coord_square.x = i;
-    coord_square.y = side_cell_count/2;
-    coord_field = translate_to_field(coord_square);
-    field->place_edge_in_field(coord_field, particle_num, collisions_p);
-    add_edge_location(coord_field);
+      //bottom side
+      coord_square.x = i;
+      coord_square.y = side_cell_count/2 - j;
+      coord_field = translate_to_field(coord_square);
+      field->place_edge_in_field(coord_field, particle_num, collisions_p);
+      add_edge_location(coord_field);
+    }
   }
   return collisions_p;
 }
@@ -103,7 +105,7 @@ Collisions* Particle::draw_square()
 //Takes a coordinate of an edge point relative to the center of mass of the particle, and translates it into coordinates relative to the field
 coord_t Particle::translate_to_field(coord_t edge_point)
 {
-
+  
   /*From a 2d matrix transform:
     x' = xcos(theta) - ysin(theta)
     y' = xsin(theta) + ycos(theta)
@@ -111,10 +113,16 @@ coord_t Particle::translate_to_field(coord_t edge_point)
   int32_t x_prime = edge_point.x*cos(orientation) - edge_point.y*sin(orientation); 
   int32_t y_prime = edge_point.x*sin(orientation) + edge_point.y*cos(orientation);
 
+  std::cout << "edge_point.x, edge_point.y: (" << edge_point.x <<"," << edge_point.y << ")\n";
+  std::cout << "orientation:                 " << orientation << "\n";
+  std::cout << "x_prime, y_prime: (" << x_prime <<"," << y_prime << ")\n";
+  
   //Translate from coordinates relative to the center of mass, to relative to the field
   edge_point.x = center_mass_coord.x + x_prime;
   edge_point.y = center_mass_coord.y + y_prime;	 
 
+  std::cout << "after: edge_point.x, edge_point.y: (" << edge_point.x <<"," << edge_point.y << ")\n";
+  
   //Check if edge is inside of the bounds of the field. If not, have it wrap around.
   if(edge_point.x < 0)
   {
@@ -133,7 +141,6 @@ coord_t Particle::translate_to_field(coord_t edge_point)
   {
     edge_point.y = edge_point.y%FIELD_HEIGHT;
   }
-  
   
   return edge_point;
 }
@@ -192,8 +199,9 @@ void Particle::propagate()
   std::cout << "y_cell_time: " << y_cell_time << "\n";
   std::cout << "r_cell_time: " << r_cell_time << "\n\n";
 
-  if(r_cell_time > TIME_LIMIT && x_cell_time > TIME_LIMIT && y_cell_time > TIME_LIMIT)
+  if((r_cell_time > TIME_LIMIT) && (x_cell_time > TIME_LIMIT) && (y_cell_time > TIME_LIMIT))
   {
+    std::cout << "1\n";
     collisions = rotate_particle(TIME_LIMIT);
     resolve_collisions(collisions);
 
@@ -214,8 +222,9 @@ void Particle::propagate()
 
     relative_time += TIME_LIMIT;    
   }
-  if(r_cell_time < x_cell_time && r_cell_time < y_cell_time)
+  else if(r_cell_time < x_cell_time && r_cell_time < y_cell_time)
   {
+    std::cout << "2\n";
     collisions = rotate_particle(r_cell_time);
     resolve_collisions(collisions);
 
@@ -238,6 +247,7 @@ void Particle::propagate()
   }
   else if(x_cell_time < y_cell_time)
   {
+    std::cout << "3\n";
     rotate_particle(x_cell_time);
     collisions = translate_x_by_1();
     resolve_collisions(collisions);
@@ -254,6 +264,8 @@ void Particle::propagate()
   }
   else //if(y_cell_time < x_cell_time)
   {
+    std::cout << "4\n";
+    std::cout << "y_cell_time: " << y_cell_time << ". x_cell_time: " << x_cell_time << ". r_cell_time: " << r_cell_time << ".\n"; 
     rotate_particle(y_cell_time);
     collisions = translate_y_by_1();
     resolve_collisions(collisions);
@@ -274,10 +286,12 @@ void Particle::propagate()
 Collisions* Particle::rotate_particle(double time_span)
 {
   delete_edges();
-  
+  std::cout <<"\n orientation before: " << orientation << "\n";
+  std::cout <<"\n time span         : " << time_span << "\n";
   orientation += angular_velocity * time_span;
   orientation = fmod(orientation, M_PI*2);
-
+  std::cout <<"orientation after : " << orientation << "\n\n";
+  
   return draw_edges();
 }
 
@@ -457,8 +471,27 @@ find the projection of the linear momentum vector with the vector pointing from 
 vector will be the */
 void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t linear_momentum, coord_t cm_coord, coord_t coll_location, momentum_t dp_t[], double dp_l[])
 {
+  
   int32_t x_diff      = cm_coord.x - coll_location.x;
   int32_t y_diff      = cm_coord.y - coll_location.y;
+  //Correct for edges that have cross the boundary of the field, but not the center of mass.
+  if(x_diff < -FIELD_WIDTH/2)
+  {
+    x_diff -= FIELD_WIDTH;
+  }
+  if(x_diff > FIELD_WIDTH/2)
+  {
+    x_diff += FIELD_WIDTH;
+  }
+  if(y_diff < -FIELD_HEIGHT/2)
+  {
+    y_diff -= FIELD_HEIGHT;
+  }
+  if(y_diff > FIELD_HEIGHT/2)
+  {
+    y_diff += FIELD_HEIGHT;
+  }
+  
   double   r_mag       = sqrt(pow(x_diff,2) + pow(y_diff,2));
   double   lin_mom_mag = sqrt(pow(linear_momentum.x,2) + pow(linear_momentum.y,2));  
 
@@ -564,8 +597,26 @@ momentum_t Particle::find_linear_momentum_at(coord_t point, field_t particle_num
   ........................
 */
 
-  uint32_t x_diff = abs(point.x - particle->get_center_mass_coord().x);
-  uint32_t y_diff = abs(point.y - particle->get_center_mass_coord().y);
+  uint32_t x_diff = point.x - particle->get_center_mass_coord().x;
+  uint32_t y_diff = point.y - particle->get_center_mass_coord().y;
+
+  if(x_diff < -FIELD_WIDTH/2)
+  {
+    x_diff -= FIELD_WIDTH;
+  }
+  if(x_diff > FIELD_WIDTH/2)
+  {
+    x_diff += FIELD_WIDTH;
+  }
+  if(y_diff < -FIELD_HEIGHT/2)
+  {
+    y_diff -= FIELD_HEIGHT;
+  }
+  if(y_diff > FIELD_HEIGHT/2)
+  {
+    y_diff += FIELD_HEIGHT;
+  }
+  
   double r        = sqrt(pow(x_diff,2) + pow(y_diff,2));
   
   double w        = particle->get_angular_velocity();

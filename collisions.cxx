@@ -6,7 +6,7 @@ Collisions::Collisions(Particle_type particle_type)
   
   if(particle_type == SQUARE)
   {
-    max_collisions = NUM_SIDES_SQUARE*(SQUARE_SIDE_LENGTH/CELL_SIZE);
+    max_collisions = NUM_SIDES_SQUARE*(SQUARE_SIDE_LENGTH/CELL_SIZE)*LINE_THICKNESS;
   }
 
   collisions = (collision_t*)malloc(sizeof(collision_t)*max_collisions);
