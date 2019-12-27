@@ -2,17 +2,6 @@
 #include "field.h"
 
 /* PRECONDITION  : None */
-/* POSTCONDITION : None */
-/* Returns the mass of the particle, based on its particle type. */
-uint16_t Particle::get_particle_mass()
-{
-  if(particle_type == SQUARE)
-  {
-    return MASS_SQUARE;
-  }
-}
-
-/* PRECONDITION  : None */
 /* POSTCONDITION : A particle has been constructed and all initial values */
 /* */
 Particle::Particle(Field* field_, field_t par_num, Particle_type par_type, double angular_vel, double orient, double x_vel, double y_vel, coord_t cm_coord)
@@ -134,27 +123,6 @@ coord_t Particle::translate_to_field(coord_t edge_point)
   //Translate from coordinates relative to the center of mass, to relative to the field
   edge_point.x = center_mass_coord.x + x_prime;
   edge_point.y = center_mass_coord.y + y_prime;	 
-
-  //std::cout << "after: edge_point.x, edge_point.y: (" << edge_point.x <<"," << edge_point.y << ")\n";
-  
-  //Check if edge is inside of the bounds of the field. If not, have it wrap around.
-  if(edge_point.x < 0)
-  {
-    edge_point.x = FIELD_WIDTH + edge_point.x;
-  }
-  else
-  {
-    edge_point.x = edge_point.x%FIELD_WIDTH;
-  }
-
-  if(edge_point.y < 0)
-  {
-    edge_point.y = FIELD_HEIGHT + edge_point.y;
-  }
-  else
-  {
-    edge_point.y = edge_point.y%FIELD_HEIGHT;
-  }
   
   return edge_point;
 }
@@ -162,7 +130,7 @@ coord_t Particle::translate_to_field(coord_t edge_point)
 /* PRECONDITION  : */
 /* POSTCONDITION : */
 /* draw edges will identify the particle type, then call the appropriate function to draw the particle */
-Collisions* Particle::draw_edges()
+Collisions* Particle::draw()
 {
   if(particle_type == SQUARE)
   {
@@ -195,7 +163,7 @@ double Particle::find_r_cell_speed()
   if(particle_type == SQUARE)
   {
     double r = sqrt(2*pow((SQUARE_SIDE_LENGTH/2)/CELL_SIZE, 2)); //distance from cm to corner
-    return abs(r*angular_velocity); //w*r = distance travelled
+    return fabs(r*angular_velocity); //w*r = distance travelled
   }
 }
 
@@ -205,8 +173,8 @@ double Particle::find_r_cell_speed()
 void Particle::propagate()
 {
   
-  double x_cell_speed = abs(x_velocity)/CELL_SIZE; //convert x velocity to cells per micro-second
-  double y_cell_speed = abs(y_velocity)/CELL_SIZE; //convert y velocity to cells per micro-second
+  double x_cell_speed = fabs(x_velocity)/CELL_SIZE; //convert x velocity to cells per micro-second
+  double y_cell_speed = fabs(y_velocity)/CELL_SIZE; //convert y velocity to cells per micro-second
   double r_cell_speed = find_r_cell_speed(); //Get rate at which fastest edge tranlates in cells per micro-second
   
   double x_cell_time     = 1/x_cell_speed; //time spent per cell movement
@@ -229,8 +197,8 @@ void Particle::propagate()
   {
     rotate_particle(TIME_LIMIT);
 
-    x_distance_to_travel = TIME_LIMIT * abs(x_velocity);
-    y_distance_to_travel = TIME_LIMIT * abs(y_velocity);
+    x_distance_to_travel = TIME_LIMIT * fabs(x_velocity);
+    y_distance_to_travel = TIME_LIMIT * fabs(y_velocity);
 
     translate_y_by_granular(y_distance_to_travel);
     translate_x_by_granular(x_distance_to_travel);
@@ -241,8 +209,8 @@ void Particle::propagate()
   {
     rotate_particle(r_cell_time);
 
-    x_distance_to_travel = r_cell_time * abs(x_velocity);
-    y_distance_to_travel = r_cell_time * abs(y_velocity);
+    x_distance_to_travel = r_cell_time * fabs(x_velocity);
+    y_distance_to_travel = r_cell_time * fabs(y_velocity);
     
     translate_y_by_granular(y_distance_to_travel);
     translate_x_by_granular(x_distance_to_travel);
@@ -254,7 +222,7 @@ void Particle::propagate()
     rotate_particle(x_cell_time);
     translate_x_by_1();
 
-    y_distance_to_travel = x_cell_time * abs(y_velocity);
+    y_distance_to_travel = x_cell_time * fabs(y_velocity);
     
     translate_y_by_granular(y_distance_to_travel);
 
@@ -265,7 +233,7 @@ void Particle::propagate()
     rotate_particle(y_cell_time);
     translate_y_by_1();
 
-    x_distance_to_travel = y_cell_time * abs(x_velocity);
+    x_distance_to_travel = y_cell_time * fabs(x_velocity);
     
     translate_x_by_granular(x_distance_to_travel);
     
@@ -283,7 +251,7 @@ void Particle::rotate_particle(double time_span)
   orientation += angular_velocity * time_span;
   orientation = fmod(orientation, M_PI*2);
   
-  Collisions* collisions = draw_edges();
+  Collisions* collisions = draw();
   resolve_collisions(collisions);
 }
 
@@ -315,7 +283,7 @@ void Particle::translate_x_by_1()
     center_mass_coord.x = center_mass_coord.x%FIELD_WIDTH;
   }
 
-  Collisions* collisions = draw_edges();
+  Collisions* collisions = draw();
   resolve_collisions(collisions);
 }
 
@@ -346,7 +314,7 @@ void Particle::translate_y_by_1()
     center_mass_coord.y = center_mass_coord.y%FIELD_HEIGHT;
   }
 
-  Collisions* collisions = draw_edges();
+  Collisions* collisions = draw();
   resolve_collisions(collisions);
 }
 
@@ -439,7 +407,7 @@ void Particle::resolve_collisions(Collisions* collisions)
   //Iterate through all the collisions that occured during the most recent drawing
   for(uint32_t i = 0; i < collisions->counts(); i++)
   {   
-
+    
     //Get the location of the collision and the identifying number of the particles that interacted
     collision_location  = collisions->get_collision_at(i).location;
     particle_1_num      = collisions->get_collision_at(i).particle1;
@@ -455,8 +423,8 @@ void Particle::resolve_collisions(Collisions* collisions)
 
     //Find the transfter of momentum due to the individual edge points that collided. The final change will be the sum of the change due to
     //every colliding edge point.
-    find_change_in_momentum(particle_1_num, particle_2_num, p1, particle_2_cm_coord, collision_location, delta_translational, delta_angular);
-    find_change_in_momentum(particle_2_num, particle_1_num, p2, particle_1_cm_coord, collision_location, delta_translational, delta_angular);
+    find_change_in_momentum(particle_1_num, particle_2_num, p1, collision_location, delta_translational, delta_angular);
+    find_change_in_momentum(particle_2_num, particle_1_num, p2, collision_location, delta_translational, delta_angular);
   }
 
   //This is ~dirty~. I had to use a list of length NUM_PARTICLES because I needed some way to keep track of which particles were interacted with.
@@ -487,10 +455,10 @@ void Particle::resolve_collisions(Collisions* collisions)
 /*Find if the change in linear momentum is in the direction of the center of mass. This is done by checking if the sign of the
   x or y of the change in linear momentum is the same as the sign as the difference of the coordinate of the center of mass and
   the location of the collision.*/
-bool Particle::is_change_in_linear_in_direction_of_cm(coord_t cm_coord, coord_t coll_location, double d_linear_x, double d_linear_y)
+bool Particle::is_change_in_linear_in_direction_of_cm(coord_t coll_location, double d_linear_x, double d_linear_y)
 {
-  int32_t cm_diff_x = cm_coord.x - coll_location.x;
-  int32_t cm_diff_y = cm_coord.y - coll_location.y;
+  int32_t cm_diff_x = center_mass_coord.x - coll_location.x;
+  int32_t cm_diff_y = center_mass_coord.y - coll_location.y;
 
   if(((cm_diff_x > 0) && (d_linear_x > 0)) || ((cm_diff_x < 0) && (d_linear_x < 0)))
   {
@@ -504,16 +472,192 @@ bool Particle::is_change_in_linear_in_direction_of_cm(coord_t cm_coord, coord_t 
   return false;
 }
 
-/* PRECONDITION  : */
+/* WARNING: This function is not for the general case. This function only works for squares. */
+/* PRECONDITION  : coll_location and cm_coord do not describe the same location. */
 /* POSTCONDITION : */
-/*Find the change in momentum due to particle one onto particle 2. The change in momentum has two parts, the change in translational momentum, and the change in angular momentum. To find the translational change, 
-find the projection of the linear momentum vector with the vector pointing from the colliding edge to the center of mass. The x and y components of this
-vector will be the */
-void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t linear_momentum, coord_t cm_coord, coord_t coll_location, momentum_t dp_t[], double dp_l[])
+/* phi is the angle, relative to the x axis, that the collision point makes with the center of mass (the center of mass being considered at the origin)*/
+bool Particle::is_change_in_angular_in_direction_of_cm(coord_t coll_location, double d_linear_x, double d_linear_y)
 {
   
-  int32_t x_diff      = cm_coord.x - coll_location.x;
-  int32_t y_diff      = cm_coord.y - coll_location.y;
+  int32_t cm_diff_x = center_mass_coord.x - coll_location.x;
+  int32_t cm_diff_y = center_mass_coord.y - coll_location.y;  
+
+  double coll_loc_angle; // total angle of the colliision point relative to the x-axis relative to the square (aka, the x-axis of the square, not the field)
+  double side_angle; // angle of the side relative to the x-axis of the field
+  double d_linear_angle;
+  int16_t side;
+
+  d_linear_angle = find_angle_relative_to_field(d_linear_x, d_linear_y);
+  std::cout << "d_linear_angle: " << d_linear_angle << "\n";
+  
+  // check for undefined behaviour of atan, then calculate coll_loc_angle if not undefined
+  if(cm_diff_x == 0 && cm_diff_y > 0)
+  {
+    coll_loc_angle = M_PI/2;
+  }
+  else if(cm_diff_x == 0 && cm_diff_y > 0)
+  {
+    coll_loc_angle = 3*M_PI/2;
+  }
+  else if(cm_diff_x > 0 && cm_diff_y == 0)
+  {
+    coll_loc_angle = 0;
+  }
+  else if(cm_diff_x < 0 && cm_diff_y == 0)
+  {
+    coll_loc_angle = M_PI;
+  }
+  
+  // check for the quadrant the vector exists in to make coll_loc_angle relative to x axis of field
+  //1st quadrant
+  if(cm_diff_x > 0 && cm_diff_y > 0)
+  {
+    coll_loc_angle = atan(cm_diff_y/cm_diff_x);
+  }
+  //2nd quadrant
+  else if(cm_diff_x < 0 && cm_diff_y > 0)
+  {
+    coll_loc_angle = M_PI - atan(cm_diff_y/abs(cm_diff_x));
+  }
+  //3rd quadrant
+  else if(cm_diff_x < 0 && cm_diff_y < 0)
+  {
+    coll_loc_angle = 3*M_PI/2 - atan(((double)abs(cm_diff_y))/((double)abs(cm_diff_x)));
+  }
+  //4th quadrant
+  else if(cm_diff_x > 0 && cm_diff_y < 0)
+  {
+    coll_loc_angle = 2*M_PI - atan(((double)abs(cm_diff_y))/((double)cm_diff_x));
+  }
+
+  std::cout << "COLL_LOC_ANGLE: " << coll_loc_angle << "\n";
+  
+  // absolutely disgusting
+  if(coll_loc_angle >= 7*M_PI/4 && coll_loc_angle < M_PI/4)
+  {
+    side = RIGHT;
+  }
+  else if(coll_loc_angle >= M_PI/4 && coll_loc_angle < 3*M_PI/4)
+  {
+    side = TOP;
+  }
+  else if(coll_loc_angle >= 3*M_PI/4 && coll_loc_angle < 5*M_PI/4)
+  {
+    side = LEFT;
+  }
+  else if(coll_loc_angle >= 5*M_PI/4 && coll_loc_angle < 7*M_PI/4)
+  {
+    side = BOTTOM;
+  }
+ 
+  std::cout << "SIDE: " << side << "\n";
+  
+  switch(side)
+  {
+  case TOP:
+    std::cout << "TOP\n";
+    side_angle = orientation;
+    if(d_linear_angle > (side_angle + M_PI))
+    {
+      return true;
+    }
+    break;
+  case BOTTOM:
+    std::cout << "BOTTOM\n";
+    side_angle = orientation;
+    if(d_linear_angle < (side_angle + M_PI))
+    {
+      return true;
+    }
+    break;
+  case LEFT:
+    std::cout << "LEFT\n";
+    side_angle = orientation + M_PI/2;
+    if((d_linear_angle < (side_angle)) || (d_linear_angle > (side_angle + M_PI)))
+    {
+      return true;
+    }    
+    break;
+  case RIGHT:
+    std::cout << "RIGHT\n";
+    side_angle = orientation + M_PI/2;
+    if((d_linear_angle > (side_angle)) && (d_linear_angle < (side_angle + M_PI)))
+    {
+      return true;
+    }
+    break;
+  default:
+    std::cout << "Error: reached default in switch in particle.cxx\n";
+  }
+
+  std::cout << "RETURNING FALSE \n";		 
+  return false;
+}
+
+/* PRECONDITION  : None */ 
+/* POSTCONDITION : An angle between 0 and 2pi relative to the x-axis of the field will be returned. */
+/* */
+double Particle::find_angle_relative_to_field(double x, double y)
+{
+  double angle;
+
+  // check for undefined behaviour of atan, then calculate angle if not undefined
+  if(x == 0 && y > 0)
+  {
+    return M_PI/2;
+  }
+  else if(x == 0 && y > 0)
+  {
+    return 3*M_PI/2;
+  }
+  else if(x > 0 && y == 0)
+  {
+    return 0;
+  }
+  else if(x < 0 && y == 0)
+  {
+    return M_PI;
+  }
+
+  // check for the quadrant the vector exists in to make angle relative to x axis of field
+  //1st quadrant
+  if(x > 0 && y > 0)
+  {
+    std::cout << "1: " << x << "," << y << "\n";
+    angle = atan(y/x);
+  }
+  //2nd quadrant
+  else if(x < 0 && y > 0)
+  {
+    std::cout << "2: " << x << "," << y << "\n";
+    angle = M_PI - atan(y/fabs(x));
+  }
+  //3rd quadrant
+  else if(x < 0 && y < 0)
+  {
+    std::cout << "3: " << x << "," << y << "\n";
+    angle = 3*M_PI/2 - atan(fabs(y)/fabs(x));
+  }
+  //4th quadrant
+  else if(x > 0 && y < 0)
+  {
+    std::cout << "4: " << x << "," << y << "\n";
+    angle = 2*M_PI - atan(fabs(y)/x);
+  }
+  
+  return angle;
+}
+
+/* PRECONDITION  : */
+/* POSTCONDITION : */
+/*Find the change in momentum due to particle 1 onto particle 2. The change in momentum has two parts, the change in translational momentum, and the change in angular momentum. To find the translational change, 
+find the projection of the linear momentum vector with the vector pointing from the colliding edge to the center of mass. The x and y components of this
+vector will be the */
+void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t linear_momentum, coord_t coll_location, momentum_t dp_t[], double dp_l[])
+{
+  
+  int32_t x_diff      = particles.at(par2)->get_center_mass_coord().x - coll_location.x;
+  int32_t y_diff      = particles.at(par2)->get_center_mass_coord().y - coll_location.y;
   //Correct for edges that have cross the boundary of the field, but not the center of mass.
   if(x_diff < -FIELD_WIDTH/2)
   {
@@ -538,7 +682,7 @@ void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t 
   double d_linear_x = (linear_momentum.x * abs(x_diff))/r_mag;
   double d_linear_y = (linear_momentum.y * abs(y_diff))/r_mag;
 
-  if(is_change_in_linear_in_direction_of_cm(cm_coord, coll_location, d_linear_x, d_linear_y))
+  if(particles.at(par2)->is_change_in_linear_in_direction_of_cm(coll_location, d_linear_x, d_linear_y))
   {
     dp_t[par2].x += d_linear_x;
     dp_t[par2].y += d_linear_y;
@@ -546,16 +690,19 @@ void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t 
     dp_t[par1].x -= d_linear_x;
     dp_t[par1].y -= d_linear_y;
   }
-  
+
   double dp_lx = (linear_momentum.x *  abs(y_diff))/r_mag;
   double dp_ly = (linear_momentum.y * -abs(x_diff))/r_mag;
 
   int32_t l_direction = determine_direction_of_angular_change(x_diff, y_diff, dp_lx, dp_ly);
 
-  double d_angular_momentum = l_direction*sqrt( pow(dp_lx,2) + pow(dp_ly,2) );
+  if(particles.at(par2)->is_change_in_angular_in_direction_of_cm(coll_location, dp_lx, dp_ly))
+  { 
+    double d_angular_momentum = l_direction*sqrt( pow(dp_lx,2) + pow(dp_ly,2) );
   
-  dp_l[par2] += d_angular_momentum;
-  dp_l[par1] -= d_angular_momentum;
+    dp_l[par2] += d_angular_momentum;
+    dp_l[par1] -= d_angular_momentum;
+  }
 }
 
 /* PRECONDITION  : */

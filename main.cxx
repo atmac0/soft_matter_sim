@@ -17,12 +17,12 @@ field_t find_lowest_time_particle(std::vector<Particle*> particles);
 Particle make_random_square(field_t par_num, coord_t cm_coord, Field* my_field);
 void initialize_particles(std::vector<Particle*>* particles, Field* my_field);
 
-int32_t main()
+int main()
 {
   Field my_field;
 
   uint32_t frame_counter = 0;
-  double time_increment = 1;
+  double time_increment = .1;
   double time = 0;
   double end_time = 1000000;
 
@@ -46,7 +46,7 @@ int32_t main()
       time += time_increment;
     }
   }
-  
+
   return 0;
 }
 
@@ -113,7 +113,7 @@ void initialize_particles(std::vector<Particle*>* particles, Field* my_field)
   for(std::vector<Particle*>::iterator it = particles->begin(); it != particles->end(); it++)
   {
     (*it)->set_particles_vector(particles);
-    (*it)->draw_edges();
+    (*it)->draw();
   }
 
   my_field->field_to_png();

@@ -18,6 +18,7 @@ class Field
 private:
   field_t field[FIELD_WIDTH][FIELD_HEIGHT];
   uint32_t frame_num;
+  coord_t translate_point_to_field(coord_t point);
 public:
   Field();
   int32_t field_to_png();
