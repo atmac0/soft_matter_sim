@@ -36,8 +36,13 @@ private:
   
   Field* field;
   
+<<<<<<< HEAD
   std::vector<coord_t> edge_locations; /* vector of all the coordinates of the location of edges. To be used for the deletion of edged */
   std::vector<Particle*> particles;    /* vector shared between all particles, of all the particles in the field. */
+=======
+  std::vector<coord_t> edge_locations;           //list of all the coordinates of the location of edges. To be used for the deletion of edged
+  Particle** particles;
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
   
 public:
   Particle(Field* field_, field_t par_num, Particle_type par_type, double angular_vel, double orient, double x_vel, double y_vel, coord_t cm_coord);
@@ -50,6 +55,7 @@ public:
   coord_t translate_to_field(coord_t edge_point);
   double find_angle_relative_to_field(double x, double y);
   void add_edge_location(coord_t);
+<<<<<<< HEAD
 
   void translate_x_by_1();
   void translate_y_by_1();
@@ -62,13 +68,28 @@ public:
 
   momentum_t find_linear_momentum_at(coord_t point, field_t particle_num);
   
+=======
+  void propagate();
+  Collisions* translate_x_by_1();
+  Collisions* translate_y_by_1();
+  Collisions* rotate_particle(double time_span);
+  void resolve_collisions(Collisions* collisions);
+  uint32_t translate_y_by_granular(double granularity);
+  uint32_t translate_x_by_granular(double granularity);
+  momentum_t find_linear_momentum_at(coord_t point);
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
   uint32_t get_mass();
   coord_t get_center_mass_coord();
   double get_x_velocity();
   double get_y_velocity();
   double get_angular_velocity();
+<<<<<<< HEAD
+=======
+  void set_particles_array(Particle** par_arr);
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
   double get_moment_of_inertia();
   double get_relative_time();
+<<<<<<< HEAD
   field_t get_particle_num();
   double find_r_cell_speed();
   
@@ -81,4 +102,8 @@ public:
   int32_t determine_direction_of_angular_change(int32_t x_diff, int32_t y_diff, double dp_lx, double dp_ly);
   void find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t linear_momentum, coord_t coll_location, momentum_t dp_t[], double dp_l[]);
 
+=======
+  int32_t determine_direction_of_angular_change(int32_t x_diff, int32_t y_diff, double dp_lx, double dp_ly);
+  double find_r_cell_speed();
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
 };

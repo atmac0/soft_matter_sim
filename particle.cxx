@@ -1,9 +1,20 @@
 #include "particle.h"
 #include "field.h"
 
+<<<<<<< HEAD
 /* PRECONDITION  : None */
 /* POSTCONDITION : A particle has been constructed and all initial values */
 /* */
+=======
+uint16_t Particle::get_particle_mass()
+{
+  if(particle_type == SQUARE)
+  {
+    return 1;
+  }
+}
+
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
 Particle::Particle(Field* field_, field_t par_num, Particle_type par_type, double angular_vel, double orient, double x_vel, double y_vel, coord_t cm_coord)
 {
   particle_num       = par_num;
@@ -22,25 +33,12 @@ Particle::Particle(Field* field_, field_t par_num, Particle_type par_type, doubl
   
   if(par_type == SQUARE)
   {
-    edge_locations.resize((NUM_SIDES_SQUARE*SQUARE_SIDE_LENGTH/CELL_SIZE)*LINE_THICKNESS); //resize edge location vector to hold all possible edges
+    edge_locations.resize(NUM_SIDES_SQUARE*SQUARE_SIDE_LENGTH/CELL_SIZE); //resize edge location vector to hold all possible edges
     mass = MASS_SQUARE;
     moment_of_inertia = ((double)mass*pow(SQUARE_SIDE_LENGTH,2))/6; //moment of inertia is defined for a flat square as: L = (m*a^2)/6
   }
 }  
 
-/* PRECONDITION  : None */
-/* POSTCONDITION : The location of an edge has been added the the vector containing the edge locations. */
-/* */
-void Particle::add_edge_location(coord_t location)
-{  
-  edge_locations.push_back(location);
-}
-
-/* PRECONDITION  : A field has been initialized */
-/* POSTCONDITION : The edges of the square have been placed into the field, where the particle number is stored in each cell othat corresponds
-                  to an edge point of the square. The location of each edge point placed is stored in a list. Each edge point that is placed 
-		  into a cell that already contained an edge point of a different particle will be considered a collision, and stored in a 
-		  list that contains all the collision points which will be returned. */
 /* The un-rotated orientation of the square is assumed to be as if the top and bottom of the square are parallel with the top and bottom
 of the field. A line parallel to these references, pointing to the right, is used as the reference for the x-axis.
 
@@ -58,7 +56,14 @@ to cartesian coordinates (using the field as a reference frame), where:
 x = rcos(theta)
 y = rsin(theta)
 
-where r is calulated by incremented values of an x and y value that are stored relative to the square, using the pythagorean theorem. */
+where r is calulated by incremented values of an x and y value that are stored relative to the square, using the pythagorean theorem.
+
+*/
+void Particle::add_edge_location(coord_t location)
+{  
+  edge_locations.push_back(location);
+}
+
 Collisions* Particle::draw_square()
 {
   int32_t side_cell_count = SQUARE_SIDE_LENGTH/CELL_SIZE; /*Gives a normalized size of each cell. Aka, if the side length is 20um, and the cell size is 2um,
@@ -103,9 +108,7 @@ Collisions* Particle::draw_square()
   return collisions_p;
 }
 
-/* PRECONDITION  : None */
-/* POSTCONDITION : None */
-/* Takes a coordinate of an edge point relative to the center of mass of the particle, and translates it into coordinates relative to the field */
+//Takes a coordinate of an edge point relative to the center of mass of the particle, and translates it into coordinates relative to the field
 coord_t Particle::translate_to_field(coord_t edge_point)
 {
   
@@ -116,19 +119,41 @@ coord_t Particle::translate_to_field(coord_t edge_point)
   int32_t x_prime = edge_point.x*cos(orientation) - edge_point.y*sin(orientation); 
   int32_t y_prime = edge_point.x*sin(orientation) + edge_point.y*cos(orientation);
 
-  // std::cout << "edge_point.x, edge_point.y: (" << edge_point.x <<"," << edge_point.y << ")\n";
-  // std::cout << "orientation:                 " << orientation << "\n";
-  // std::cout << "x_prime, y_prime: (" << x_prime <<"," << y_prime << ")\n";
+  std::cout << "edge_point.x, edge_point.y: (" << edge_point.x <<"," << edge_point.y << ")\n";
+  std::cout << "orientation:                 " << orientation << "\n";
+  std::cout << "x_prime, y_prime: (" << x_prime <<"," << y_prime << ")\n";
   
   //Translate from coordinates relative to the center of mass, to relative to the field
   edge_point.x = center_mass_coord.x + x_prime;
   edge_point.y = center_mass_coord.y + y_prime;	 
+<<<<<<< HEAD
+=======
+
+  std::cout << "after: edge_point.x, edge_point.y: (" << edge_point.x <<"," << edge_point.y << ")\n";
+  
+  //Check if edge is inside of the bounds of the field. If not, have it wrap around.
+  if(edge_point.x < 0)
+  {
+    edge_point.x = FIELD_WIDTH + edge_point.x;
+  }
+  else
+  {
+    edge_point.x = edge_point.x%FIELD_WIDTH;
+  }
+
+  if(edge_point.y < 0)
+  {
+    edge_point.y = FIELD_HEIGHT + edge_point.y;
+  }
+  else
+  {
+    edge_point.y = edge_point.y%FIELD_HEIGHT;
+  }
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
   
   return edge_point;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
 /* draw edges will identify the particle type, then call the appropriate function to draw the particle */
 Collisions* Particle::draw()
 {
@@ -138,10 +163,6 @@ Collisions* Particle::draw()
   }
 }
 
-/* PRECONDITION  : A field has been initialized */
-/* POSTCONDITION : All edge points of the particle be will be cleared and returned to empty cell value. The list containing 
-                  the edge locations will also be cleared. */
-/* */
 void Particle::delete_edges()
 {
   for(std::vector<coord_t>::iterator it = edge_locations.begin(); it != edge_locations.end(); it++)
@@ -155,9 +176,6 @@ void Particle::delete_edges()
   edge_locations.clear();  
 }
 
-/* PRECONDITION  : None */
-/* POSTCONDITION : None */
-/* Returns the magnitude of the velocity due to the angular velocity of the furthest edge point from the center of mass of the particle. */
 double Particle::find_r_cell_speed()
 {
   if(particle_type == SQUARE)
@@ -167,9 +185,6 @@ double Particle::find_r_cell_speed()
   }
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 void Particle::propagate()
 {
   
@@ -185,89 +200,123 @@ void Particle::propagate()
   
   Collisions* collisions;
 
-  // std::cout << "x_cell_speed: " << x_cell_speed << "\n";
-  // std::cout << "y_cell_speed: " << y_cell_speed << "\n";
-  // std::cout << "r_cell_speed: " << r_cell_speed << "\n\n";
+  std::cout << "x_cell_speed: " << x_cell_speed << "\n";
+  std::cout << "y_cell_speed: " << y_cell_speed << "\n";
+  std::cout << "r_cell_speed: " << r_cell_speed << "\n\n";
   
-  // std::cout << "x_cell_time: " << x_cell_time << "\n";
-  // std::cout << "y_cell_time: " << y_cell_time << "\n";
-  // std::cout << "r_cell_time: " << r_cell_time << "\n\n";
+  std::cout << "x_cell_time: " << x_cell_time << "\n";
+  std::cout << "y_cell_time: " << y_cell_time << "\n";
+  std::cout << "r_cell_time: " << r_cell_time << "\n\n";
 
   if((r_cell_time > TIME_LIMIT) && (x_cell_time > TIME_LIMIT) && (y_cell_time > TIME_LIMIT))
   {
-    rotate_particle(TIME_LIMIT);
+    std::cout << "1\n";
+    collisions = rotate_particle(TIME_LIMIT);
+    resolve_collisions(collisions);
 
     x_distance_to_travel = TIME_LIMIT * fabs(x_velocity);
     y_distance_to_travel = TIME_LIMIT * fabs(y_velocity);
 
-    translate_y_by_granular(y_distance_to_travel);
-    translate_x_by_granular(x_distance_to_travel);
+    if(translate_y_by_granular(y_distance_to_travel) == 1)
+    {
+      collisions = translate_y_by_1();
+      resolve_collisions(collisions);
+    }
+
+    if(translate_x_by_granular(x_distance_to_travel) == 1)
+    {
+      collisions = translate_x_by_1();
+      resolve_collisions(collisions);
+    }
 
     relative_time += TIME_LIMIT;    
   }
   else if(r_cell_time < x_cell_time && r_cell_time < y_cell_time)
   {
-    rotate_particle(r_cell_time);
+    std::cout << "2\n";
+    collisions = rotate_particle(r_cell_time);
+    resolve_collisions(collisions);
 
     x_distance_to_travel = r_cell_time * fabs(x_velocity);
     y_distance_to_travel = r_cell_time * fabs(y_velocity);
     
-    translate_y_by_granular(y_distance_to_travel);
-    translate_x_by_granular(x_distance_to_travel);
+    if(translate_y_by_granular(y_distance_to_travel) == 1)
+    {
+      collisions = translate_y_by_1();
+      resolve_collisions(collisions);
+    }
+
+    if(translate_x_by_granular(x_distance_to_travel) == 1)
+    {
+      collisions = translate_x_by_1();
+      resolve_collisions(collisions);
+    }
 
     relative_time += r_cell_time;
   }
   else if(x_cell_time < y_cell_time)
   {
+    std::cout << "3\n";
     rotate_particle(x_cell_time);
-    translate_x_by_1();
+    collisions = translate_x_by_1();
+    resolve_collisions(collisions);
 
     y_distance_to_travel = x_cell_time * fabs(y_velocity);
     
-    translate_y_by_granular(y_distance_to_travel);
+    if(translate_y_by_granular(y_distance_to_travel) == 1)
+    {
+      collisions = translate_y_by_1();
+      resolve_collisions(collisions);
+    }
 
     relative_time += x_cell_time;
   }
   else //if(y_cell_time < x_cell_time)
   {
+    std::cout << "4\n";
+    std::cout << "y_cell_time: " << y_cell_time << ". x_cell_time: " << x_cell_time << ". r_cell_time: " << r_cell_time << ".\n"; 
     rotate_particle(y_cell_time);
-    translate_y_by_1();
+    collisions = translate_y_by_1();
+    resolve_collisions(collisions);
 
     x_distance_to_travel = y_cell_time * fabs(x_velocity);
     
-    translate_x_by_granular(x_distance_to_travel);
+    if(translate_x_by_granular(x_distance_to_travel) == 1)
+    {
+      collisions = translate_x_by_1();
+      resolve_collisions(collisions);
+    }
     
     relative_time += y_cell_time;
   }
 }
 
-/* PRECONDITION  : None */
-/* POSTCONDITION : The orientation of the particle will be incremented based on the current angular velocity and specified time span. The collisions 
-                   incurred due to this rotation will be resolved. */
-/* add the rotational displacement (angular velocity * time span) to the orientation. If the orientation goes over 2*PI, take the remainder. */
-void Particle::rotate_particle(double time_span)
+//add the rotational displacement (angular velocity * time span) to the orientation. If the orientation goes over 2*PI, take the remainder.
+Collisions* Particle::rotate_particle(double time_span)
 {
   delete_edges();
+  std::cout <<"\n orientation before: " << orientation << "\n";
+  std::cout <<"\n time span         : " << time_span << "\n";
   orientation += angular_velocity * time_span;
   orientation = fmod(orientation, M_PI*2);
+  std::cout <<"orientation after : " << orientation << "\n\n";
   
+<<<<<<< HEAD
   Collisions* collisions = draw();
   resolve_collisions(collisions);
+=======
+  return draw_edges();
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
 }
 
+/*Translate the particle by 1 in the direction appropriate to the current
+velocity of the particle in the x direction. This fuction deletes the current edges, propagates
+the particle in the appropriate direction by 1, then redraws the edges. This
+function returns the collisions that occured from propogation.
 
-/* PRECONDITION  : None */
-/* POSTCONDITION : The previous edges of the particle will be cleared from the field. The position of the center of mass will be incremented
-                   or decremented by 1 in the x direction to correspond to the current direction of the x velocity. The new edges corresponding
-                   to the new location of the center of mass will be drawn to the field. The collisions incurred from the redrawing will be resolved. */
-/* Translate the particle by 1 in the direction appropriate to the current
-   velocity of the particle in the x direction. This fuction deletes the current edges, propagates
-   the particle in the appropriate direction by 1, then redraws the edges. This
-   function returns the collisions that occured from propogation.
-
-   If the particle goes outside of the field, it will wrap around, meaning that if the particle exits
-   the bottom, it will reenter thetop, or if it exits the left, it will reenter the right. */
-void Particle::translate_x_by_1()
+If the particle goes outside of the field, it will wrap around, meaning that if the particle exits
+the bottom, it will reenter thetop, or if it exits the left, it will reenter the right.*/
+Collisions* Particle::translate_x_by_1()
 {
 
   delete_edges();
@@ -283,22 +332,22 @@ void Particle::translate_x_by_1()
     center_mass_coord.x = center_mass_coord.x%FIELD_WIDTH;
   }
 
+<<<<<<< HEAD
   Collisions* collisions = draw();
   resolve_collisions(collisions);
+=======
+  return draw_edges();
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
 }
 
-/* PRECONDITION  : None */
-/* POSTCONDITION : The previous edges of the particle will be cleared from the field. The position of the center of mass will be incremented
-                   or decremented by 1 in the y direction to correspond to the current direction of the y velocity. The new edges corresponding 
-		   to the new location of the center of mass will be drawn to the field. The collisions incurred from the redrawing will be resolved. */
-/* Translate the particle by 1 in the direction appropriate to the current
-   velocity of the particle in the y direction. This fuction deletes the current edges, propagates
-   the particle in the appropriate direction by 1, then redraws the edges. This
-   function returns the collisions that occured from propogation.
-   
-   If the particle goes outside of the field, it will wrap around, meaning that if the particle exits
-   the bottom, it will reenter thetop, or if it exits the left, it will reenter the right. */
-void Particle::translate_y_by_1()
+/*Translate the particle by 1 in the direction appropriate to the current
+velocity of the particle in the y direction. This fuction deletes the current edges, propagates
+the particle in the appropriate direction by 1, then redraws the edges. This
+function returns the collisions that occured from propogation.
+
+If the particle goes outside of the field, it will wrap around, meaning that if the particle exits
+the bottom, it will reenter thetop, or if it exits the left, it will reenter the right.*/
+Collisions* Particle::translate_y_by_1()
 {
   
   delete_edges();
@@ -314,18 +363,20 @@ void Particle::translate_y_by_1()
     center_mass_coord.y = center_mass_coord.y%FIELD_HEIGHT;
   }
 
+<<<<<<< HEAD
   Collisions* collisions = draw();
   resolve_collisions(collisions);
+=======
+  return draw_edges();
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
 }
 
-/* PRECONDITION  : None */
-/* POSTCONDITION : The y granular position of the particle will have been incremented or decremeneted by the granularity depending
-                   on the direction of the y velocity. If the granular position exceeds the limit of the cell, the center of mass
-                   will be translated by 1, and the granular position reset to correspond to the granular position in the new cell.
-                   The collisions incurred by a translation will be returned. If the center of mass was not translated, an empty
-                   collisions object is returned instead. */
-/* */
-void Particle::translate_y_by_granular(double granularity)
+/*Translates a particle by a granular distance. If the granular postion
+  does not exceed the bounds of the cell (is not greater than 1 or less than 0), 
+the function will return 0, meaning 0 cells should be moved. If it does exceed those 
+bounds, the fuction will return 1, meaning the center of mass postion needs to be moved
+by 1.*/
+uint32_t Particle::translate_y_by_granular(double granularity)
 {
   if(y_velocity > 0)
   {
@@ -339,23 +390,18 @@ void Particle::translate_y_by_granular(double granularity)
   if(y_position_granular < 0)
   {
     y_position_granular = 1 + y_position_granular;
-    translate_y_by_1();
+    return 1;
   }
   if(y_position_granular > 1)
   {
     y_position_granular = y_position_granular - 1;
-    translate_y_by_1();
+    return 1;
   }
+
+  return 0;
 }
 
-/* PRECONDITION  : None */
-/* POSTCONDITION : The x granular position of the particle will have been incremented or decremeneted by the granularity depending
-                   on the direction of the x velocity. If the granular position exceeds the limit of the cell, the center of mass
-                   will be translated by 1, and the granular position reset to correspond to the granular position in the new cell.
-                   The collisions incurred by a translation will be returned. If the center of mass was not translated, an empty
-                   collisions object is returned instead. */
-/* */
-void Particle::translate_x_by_granular(double granularity)
+uint32_t Particle::translate_x_by_granular(double granularity)
 {
   if(x_velocity > 0)
   {
@@ -369,23 +415,17 @@ void Particle::translate_x_by_granular(double granularity)
   if(x_position_granular < 0)
   {
     x_position_granular = 1 + x_position_granular;
-    translate_x_by_1();
+    return 1;
   }
   if(x_position_granular > 1)
   {
     x_position_granular = x_position_granular - 1;
-    translate_x_by_1();
+    return 1;
   }
+
+  return 0;
 }
 
-/* PRECONDITION  : None */
-/* POSTCONDITION : The linear and angular velocities of the colliding particles will have been altered to reflect the interaction due to
-                  all colliding points.*/
-/* If the collisions object is empty, the function will return without altering the velocities of the particle. If collisions have occured,
-   the particles velocities will be adjusted accordingly. At each collision point, the change in momentum of particle A onto particle B, and
-   vice versa, will be calculated seperately. A list storing the total change for each particle will be held until the change for all collisions
-   has been calulated. Then, once all the collisions have been resolved, will the change in momentums be converted into change in velocities,
-   and the change in velocity will be applied to each corresponding particle.*/
 void Particle::resolve_collisions(Collisions* collisions)
 {
   
@@ -414,8 +454,8 @@ void Particle::resolve_collisions(Collisions* collisions)
     particle_2_num      = collisions->get_collision_at(i).particle2;
 
     //Get the center of mass positions of each particle
-    particle_1_cm_coord = particles.at(particle_1_num)->center_mass_coord;
-    particle_2_cm_coord = particles.at(particle_2_num)->center_mass_coord;
+    particle_1_cm_coord = particles[particle_1_num]->center_mass_coord;
+    particle_2_cm_coord = particles[particle_2_num]->center_mass_coord;
 
     //Find the linear momentum of the edge of each particle at the collision location
     p1 = find_linear_momentum_at(collision_location, particle_1_num);
@@ -432,7 +472,7 @@ void Particle::resolve_collisions(Collisions* collisions)
   //just the particles that were interacted with would be good.
   for(uint32_t i = 0; i < NUM_PARTICLES; i++)
   {
-    Particle* particle = particles.at(i);
+    Particle* particle = particles[i];
     //To find the velocity, p=mv, where v=p/m. This is why you must divide by momentum by the mass.
     double average_dx_trans_vel = (delta_translational[i].x/particle->get_mass())/collisions->counts();
     double average_dy_trans_vel = (delta_translational[i].y/particle->get_mass())/collisions->counts();
@@ -442,14 +482,15 @@ void Particle::resolve_collisions(Collisions* collisions)
     particle->increment_y_velocity(average_dy_trans_vel);
     particle->increment_angular_velocity(average_dl); 
 
-    // std::cout << "Collision count: " << collisions->counts() << "\n";
-    // std::cout << "Particle " << i << ":\n";
-    // std::cout << "dx_trans_vel: " << average_dx_trans_vel << "\n";
-    // std::cout << "dy_trans_vel: " << average_dy_trans_vel << "\n"; 
-    // std::cout << "dl angular  : " << average_dl << "\n\n";       
+    std::cout << "Collision count: " << collisions->counts() << "\n";
+    std::cout << "Particle " << i << ":\n";
+    std::cout << "dx_trans_vel: " << average_dx_trans_vel << "\n";
+    std::cout << "dy_trans_vel: " << average_dy_trans_vel << "\n"; 
+    std::cout << "dl angular  : " << average_dl << "\n\n";       
   }
 }
 
+<<<<<<< HEAD
 /* PRECONDITION  : d_linear vector points in the direction of a line that intersects with the center of mass. */
 /* POSTCONDITION : None */
 /*Find if the change in linear momentum is in the direction of the center of mass. This is done by checking if the sign of the
@@ -651,6 +692,9 @@ double Particle::find_angle_relative_to_field(double x, double y)
 /* PRECONDITION  : */
 /* POSTCONDITION : */
 /*Find the change in momentum due to particle 1 onto particle 2. The change in momentum has two parts, the change in translational momentum, and the change in angular momentum. To find the translational change, 
+=======
+/*Find the change in momentum due to particle one onto particle 2. The change in momentum has two parts, the change in translational momentum, and the change in angular momentum. To find the translational change, 
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
 find the projection of the linear momentum vector with the vector pointing from the colliding edge to the center of mass. The x and y components of this
 vector will be the */
 void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t linear_momentum, coord_t coll_location, momentum_t dp_t[], double dp_l[])
@@ -682,6 +726,7 @@ void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t 
   double d_linear_x = (linear_momentum.x * abs(x_diff))/r_mag;
   double d_linear_y = (linear_momentum.y * abs(y_diff))/r_mag;
 
+<<<<<<< HEAD
   if(particles.at(par2)->is_change_in_linear_in_direction_of_cm(coll_location, d_linear_x, d_linear_y))
   {
     dp_t[par2].x += d_linear_x;
@@ -691,6 +736,14 @@ void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t 
     dp_t[par1].y -= d_linear_y;
   }
 
+=======
+  dp_t[par2].x += d_linear_x;
+  dp_t[par2].y += d_linear_y;
+
+  dp_t[par1].x -= d_linear_x;
+  dp_t[par1].y -= d_linear_y;
+  
+>>>>>>> parent of 7683a69... Fixed collision resolution bug where particles dragged eachother along. Added documentation to particle class. Cleaned up center of mass translation functions.
   double dp_lx = (linear_momentum.x *  abs(y_diff))/r_mag;
   double dp_ly = (linear_momentum.y * -abs(x_diff))/r_mag;
 
@@ -705,8 +758,6 @@ void Particle::find_change_in_momentum(uint16_t par1, uint16_t par2, momentum_t 
   }
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
 /*Returns -1 if the angular change is in the clockwise direction, 1 if in the counter clockwise direction. Set up a matrix where the elements are
 organzied as so:
 
@@ -750,8 +801,6 @@ int32_t Particle::determine_direction_of_angular_change(int32_t x_diff, int32_t 
   */
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
 /*Find the linear momentum at a point on the edge of a particle.
 Notation:
 L: angular momentum
@@ -764,11 +813,12 @@ I: moment of inertia
 L = rp; L=Iw; => p = Iw/r
 
 These relations are used to find the magnitude of the momentum at a point on the edge. The components
-are then found using */
+are then found using
+*/
 momentum_t Particle::find_linear_momentum_at(coord_t point, field_t particle_num)
 {
 
-  Particle* particle = particles.at(particle_num);
+  Particle* particle = particles[particle_num];
   momentum_t linear_momentum;
 
   //Find the components due to translational momentum
@@ -840,98 +890,57 @@ momentum_t Particle::find_linear_momentum_at(coord_t point, field_t particle_num
   return linear_momentum;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 uint32_t Particle::get_mass()
 {
   return mass;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 void Particle::increment_y_velocity(double dy)
 {
   y_velocity += dy;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 void Particle::increment_x_velocity(double dx)
 {
   x_velocity += dx;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 void Particle::increment_angular_velocity(double dw)
 {
   angular_velocity += dw;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 double Particle::get_y_velocity()
 {
   return y_velocity;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 double Particle::get_x_velocity()
 {
   return x_velocity;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 coord_t Particle::get_center_mass_coord()
 {
   return center_mass_coord;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 double Particle::get_angular_velocity()
 {
   return angular_velocity;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
-void Particle::set_particles_vector(std::vector<Particle*>* par_vec)
+void Particle::set_particles_array(Particle** par_arr)
 {
-  particles = *par_vec;
+  particles = par_arr;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 double Particle::get_moment_of_inertia()
 {
   return moment_of_inertia;
 }
 
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
 double Particle::get_relative_time()
 {
   return relative_time;
-}
-
-/* PRECONDITION  : */
-/* POSTCONDITION : */
-/* */
-field_t Particle::get_particle_num()
-{
-  return particle_num;
 }
