@@ -7,7 +7,7 @@ EXE = sims
 all: $(OBJ)
 	$(CC) $(OBJ) -o $(EXE) $(LIBS)
 
-main.o: main.cxx $(DEPS)
+%.o: %.cxx $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
